@@ -1,6 +1,7 @@
 package github.chorman0773.tiny.sema.ssa.expr;
 
 import github.chorman0773.tiny.ast.BinaryOp;
+import github.chorman0773.tiny.ast.Type;
 
 public class ExprOp extends SSAExpression {
     private final BinaryOp op;
@@ -28,4 +29,5 @@ public class ExprOp extends SSAExpression {
     public String toString(){
         return "("+left+" "+op+" "+right+")";
     }
+
 }

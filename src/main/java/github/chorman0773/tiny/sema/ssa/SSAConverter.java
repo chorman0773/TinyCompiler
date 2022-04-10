@@ -1,15 +1,21 @@
 package github.chorman0773.tiny.sema.ssa;
 
+import com.sun.jdi.Method;
 import github.chorman0773.tiny.ast.*;
 import github.chorman0773.tiny.sema.ConversionError;
+import github.chorman0773.tiny.sema.MethodSignature;
 import github.chorman0773.tiny.sema.ssa.expr.*;
 import github.chorman0773.tiny.sema.ssa.expr.SSAExpression;
 import github.chorman0773.tiny.sema.ssa.stat.*;
 
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SSAConverter {
+
+    private Map<String, MethodSignature> signature;
+
     private List<BasicBlock> basicBlocks;
 
     static class BasicBlockBuilder{
@@ -39,6 +45,7 @@ public class SSAConverter {
     private BasicBlockBuilder currBB;
 
     public SSAConverter(){
+        this.signature = new HashMap<>();
         this.reset();
     }
 
@@ -51,6 +58,27 @@ public class SSAConverter {
         this.currBB = new BasicBlockBuilder(0);
     }
 
+    public Type typecheckExpr(SSAExpression expr){
+        if(expr instanceof ExprLocal local){
+            return this.currBB.locals.get(local.getLocalNumber());
+        }else if(expr instanceof ExprOp op){
+            Type leftTy = typecheckExpr(op.getLeft());
+            if(leftTy!=typecheckExpr(op.getRight()))
+                throw new ConversionError("Cannot apply binary op "+op+" left type ("+leftTy+") is not "+typecheckExpr(op.getRight()));
+            return leftTy;
+        }else if(expr instanceof ExprInt){
+            return Type.Int;
+        }else if(expr instanceof ExprFloat){
+            return Type.Real;
+        }else if(expr instanceof ExprCast cast){
+            return cast.getType();
+        }else if(expr instanceof ExprCall call){
+            return signature.get(call.getFunction()).ret();
+        }else
+            throw new ConversionError("Unrecognized expression type "+expr);
+    }
+
+
     public SSAExpression convertExpr(github.chorman0773.tiny.ast.Expression expr){
         if(expr instanceof ExpressionId id){
             Integer local = currBB.localNames.get(id.getIdentifier());
@@ -61,9 +89,28 @@ public class SSAConverter {
         }else if(expr instanceof ExpressionBinary bin){
             SSAExpression left = convertExpr(bin.getLeft());
             SSAExpression right = convertExpr(bin.getRight());
-            return new ExprOp(bin.getOperator(),left,right);
+            Type leftTy = typecheckExpr(left);
+            Type rightTy = typecheckExpr(right);
+
+            if(leftTy==rightTy)
+                return new ExprOp(bin.getOperator(),left,right);
+            else if(leftTy==Type.Int)
+                return new ExprOp(bin.getOperator(), new ExprCast(rightTy,left),right);
+            else
+                return new ExprOp(bin.getOperator(), left, new ExprCast(leftTy, right));
         }else if(expr instanceof ExpressionCall call){
-            return new ExprCall(call.getMethodName(),call.getParameters().stream().map(this::convertExpr).toList());
+            List<SSAExpression> args =call.getParameters().stream().map(this::convertExpr).collect(Collectors.toList());
+            MethodSignature sig = signature.get(call.getMethodName());
+            if(sig==null)
+                throw new ConversionError("Attempt to call undeclared function "+call.getMethodName());
+            if(sig.params().size()!=args.size())
+                throw new ConversionError("Attempt to call function "+call.getMethodName()+" ("+sig.params().size()+" parameters) with "+args.size()+" arguments.");
+            for(int i = 0;i<sig.params().size();i++){
+                var arg = args.get(i);
+                if(typecheckExpr(arg)!=sig.params().get(i))
+                    args.set(i,new ExprCast(sig.params().get(i),arg));
+            }
+            return new ExprCall(call.getMethodName(),args);
         }else if(expr instanceof ParenExpr paren){
             return convertExpr(paren.getInner());
         }else if(expr instanceof ExpressionNumber num){
@@ -87,6 +134,12 @@ public class SSAConverter {
             if(ty==null)
                 throw new ConversionError("Attempt to assign to undeclared local variable "+id);
 
+            Type assignTy = typecheckExpr(expr);
+
+            if(assignTy!=ty){
+                expr = new ExprCast(ty,expr);
+            }
+
             int newLoc = currBB.localNums++;
 
             currBB.locals.add(ty);
@@ -106,7 +159,15 @@ public class SSAConverter {
             var expr = decl.getInitializer();
             if(expr.isPresent()){
                 currBB.locals.add(ty);
-                currBB.stats.add(new StatDeclaration(ty,currBB.localNums++,convertExpr(expr.get())));
+
+                SSAExpression init = convertExpr(expr.get());
+                Type assignTy = typecheckExpr(init);
+
+                if(assignTy!=ty){
+                    init = new ExprCast(ty,init);
+                }
+
+                currBB.stats.add(new StatDeclaration(ty,currBB.localNums++,init));
             }
         }else if(stat instanceof StatementRead read){
             String id = read.getIdent();
@@ -176,7 +237,7 @@ public class SSAConverter {
                 int localName = nextBB.localNums++;
                 nextBB.locals.add(this.localTypes.get(name));
                 localMap.put(lastBB.localNames.get(name),localName);
-                thenLocalMap.put(lastBB.localNames.get(name),localName);
+                thenLocalMap.put(thenBB.localNames.get(name),localName);
                 nextBB.localNames.put(name,localName);
             }
             thenBB.stats.add(new StatBranch(nextBB.num,thenLocalMap));
@@ -199,16 +260,24 @@ public class SSAConverter {
             params.add(param.getType());
         }
 
-        System.err.println(localTypes);
-
         for(var stat : method.getBlock().getStatements())
             convertStatement(stat);
+        if(!currBB.stats.get(currBB.stats.size()-1).isTerminator()){
+            if(method.isMain())
+                currBB.stats.add(new StatReturn(new ExprInt(0)));
+            else
+                throw new ConversionError("No return statement from function "+method.getName());
+        }
         this.basicBlocks.add(currBB.build());
 
         return new SSAMethodDeclaration(params,method.isMain(),method.getName(),method.returnType(),this.basicBlocks);
     }
 
     public SSAProgram convertProgram(github.chorman0773.tiny.ast.Program prg){
+        for(var decl : prg.getDeclarations()){
+            if(signature.putIfAbsent(decl.getName(),new MethodSignature(decl.returnType(),decl.getParameters().stream().map(Parameter::getType).collect(Collectors.toUnmodifiableList())))!=null)
+                throw new ConversionError("Redefinition of method "+decl.getName());
+        }
         List<SSAMethodDeclaration> decls = new ArrayList<>();
         for(var decl : prg.getDeclarations()){
             decls.add(convertMethod(decl));

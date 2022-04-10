@@ -33,5 +33,8 @@ public class StatBranch extends SSAStatement {
         return st.toString();
     }
 
-
+    @Override
+    public boolean isTerminator() {
+        return true;
+    }
 }

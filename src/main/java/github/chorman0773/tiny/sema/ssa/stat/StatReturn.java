@@ -15,4 +15,9 @@ public class StatReturn extends SSAStatement {
     public String toString(){
         return "return "+expr;
     }
+
+    @Override
+    public boolean isTerminator() {
+        return true;
+    }
 }

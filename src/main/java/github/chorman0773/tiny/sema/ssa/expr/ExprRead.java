@@ -21,4 +21,5 @@ public class ExprRead extends SSAExpression {
     public String toString(){
         return "READ(\""+path+"\") as "+ty;
     }
+
 }
