@@ -1,0 +1,4 @@
+INT f0(REAL x)
+BEGIN
+    RETURN x;
+END

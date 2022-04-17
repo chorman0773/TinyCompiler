@@ -1,0 +1,8 @@
+plugins {
+    id 'java'
+}
+
+group 'github.chorman0773.tiny'
+version '1.0'
+
+sourceCompatibility = targetCompatibility = "1.7"

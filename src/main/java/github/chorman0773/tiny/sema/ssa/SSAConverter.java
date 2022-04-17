@@ -110,7 +110,7 @@ public class SSAConverter {
                 if(typecheckExpr(arg)!=sig.params().get(i))
                     args.set(i,new ExprCast(sig.params().get(i),arg));
             }
-            return new ExprCall(call.getMethodName(),args);
+            return new ExprCall(call.getMethodName(),args,sig);
         }else if(expr instanceof ParenExpr paren){
             return convertExpr(paren.getInner());
         }else if(expr instanceof ExpressionNumber num){
@@ -275,7 +275,7 @@ public class SSAConverter {
 
     public SSAProgram convertProgram(github.chorman0773.tiny.ast.Program prg){
         for(var decl : prg.getDeclarations()){
-            if(signature.putIfAbsent(decl.getName(),new MethodSignature(decl.returnType(),decl.getParameters().stream().map(Parameter::getType).collect(Collectors.toUnmodifiableList())))!=null)
+            if(signature.putIfAbsent(decl.getName(),new MethodSignature(decl.returnType(), decl.getParameters().stream().map(Parameter::getType).toList()))!=null)
                 throw new ConversionError("Redefinition of method "+decl.getName());
         }
         List<SSAMethodDeclaration> decls = new ArrayList<>();

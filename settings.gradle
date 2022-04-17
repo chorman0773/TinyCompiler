@@ -1,2 +1,5 @@
 rootProject.name = "TinyCompiler"
 
+include 'tiny-stdlib'
+include 'tiny-stdlib'
+

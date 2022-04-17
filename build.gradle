@@ -4,6 +4,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'org.javamodularity.moduleplugin' version '1.6.0' apply false
+    id 'application'
 }
 
 sourceCompatibility = targetCompatibility = 16
@@ -15,6 +16,14 @@ repositories {
 	    name = "Lightning Creations Maven"
 	}
 	mavenCentral()
+}
+
+application {
+     mainClass = 'github.chorman0773.tiny.Main'
+}
+
+dependencies {
+    implementation 'org.ow2.asm:asm:9.3'
 }
 
 task sourceJar(type: Jar){
