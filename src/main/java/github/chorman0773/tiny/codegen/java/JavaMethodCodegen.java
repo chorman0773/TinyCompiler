@@ -49,7 +49,7 @@ public class JavaMethodCodegen {
             localToReal.put(localNo,realLocal);
             Label end = new Label();
             localEndLabels.put(realLocal,end);
-            visit.visitLocalVariable("_"+localNo,JavaCodegen.toJavaType(ty).getDescriptor(),null,start,end,realLocal);
+            // visit.visitLocalVariable("_"+localNo,JavaCodegen.toJavaType(ty).getDescriptor(),null,start,end,realLocal);
             localsLive.add(realLocal);
             if(ty==Type.Real) // double uses 2 stack slots in JVM, so we need to bump nextRealLocal by one
                 nextRealLocal++;
@@ -228,7 +228,7 @@ public class JavaMethodCodegen {
                 visit.visitLabel(start);
                 Label end = new Label();
                 this.localEndLabels.put(realTargetLocal,end);
-                visit.visitLocalVariable("_"+locals.getValue(),JavaCodegen.toJavaType(locTy).getDescriptor(),null,start,end,realTargetLocal);
+                // visit.visitLocalVariable("_"+locals.getValue(),JavaCodegen.toJavaType(locTy).getDescriptor(),null,start,end,realTargetLocal);
             }
             if(locTy==Type.Real)
                 stackDepth -= 2;
@@ -261,7 +261,7 @@ public class JavaMethodCodegen {
             }
             if(decl.getType()==Type.Real)
                 nextRealLocal++;
-            visit.visitLocalVariable("_"+loc, JavaCodegen.toJavaType(decl.getType()).getDescriptor(),null,begin,end,realLoc);
+            // visit.visitLocalVariable("_"+loc, JavaCodegen.toJavaType(decl.getType()).getDescriptor(),null,begin,end,realLoc);
             this.localsLive.add(decl.getLocalNum());
             this.localEndLabels.put(decl.getLocalNum(),end);
         }else if(stat instanceof StatWrite write){

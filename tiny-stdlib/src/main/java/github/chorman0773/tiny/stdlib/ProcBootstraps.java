@@ -9,15 +9,15 @@ public class ProcBootstraps {
 
     static final MethodHandles.Lookup syslookup = MethodHandles.lookup();
 
-    public CallSite exit(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException {
+    public static CallSite exit(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException {
         return new ConstantCallSite(syslookup.findStatic(java.lang.System.class,"exit",desc));
     }
 
-    public CallSite main(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException {
+    public static CallSite main(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException {
         return new ConstantCallSite(lookup.findStatic(lookup.lookupClass(),name,desc));
     }
 
-    public CallSite cast(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException{
+    public static CallSite cast(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException{
         if(desc.parameterCount()!=1)
             throw new NoSuchMethodException("Cannot invoke cast on "+desc.toMethodDescriptorString()+" cast method must have at most 1 parameter");
         else if(desc.parameterType(0)==desc.returnType())
