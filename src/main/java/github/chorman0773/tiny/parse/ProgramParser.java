@@ -39,8 +39,7 @@ public class ProgramParser {
         List<Parameter> parameters = new ArrayList<>();
         while(peek.hasNext()){
             Type paramTy = parseType(peek);
-            Optional<Symbol> next = peek.optNext();
-            String paramName = getNextToken(it,TinySym.Identifier);
+            String paramName = getNextToken(peek,TinySym.Identifier);
             parameters.add(new Parameter(paramTy,paramName));
             if(!peek.hasNext())
                 break;

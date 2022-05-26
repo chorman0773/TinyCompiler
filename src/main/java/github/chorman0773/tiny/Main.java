@@ -5,6 +5,7 @@ import github.chorman0773.tiny.codegen.Codegen;
 import github.chorman0773.tiny.codegen.CodegenService;
 import github.chorman0773.tiny.codegen.java.JavaCodegenService;
 import github.chorman0773.tiny.lex.Symbol;
+import github.chorman0773.tiny.lex.TinyLexer;
 import github.chorman0773.tiny.lex.TinyScanner;
 import github.chorman0773.tiny.lex.TinySym;
 import github.chorman0773.tiny.opt.Optimizer;
@@ -29,14 +30,16 @@ public class Main {
         String file = args[0];
 
         try(var in = new BufferedInputStream(new FileInputStream(file))){
-            TinyScanner lex = new TinyScanner(in);
+            TinyLexer lex = new TinyLexer(file,in);
             List<Symbol> toks = new ArrayList<>();
 
-
             Symbol sym;
-            while((sym = lex.yylex()).getSym()!= TinySym.Eof){
+            while((sym = lex.nextToken()).getSym()!= TinySym.Eof){
                 if(sym.getSym()==TinySym.Error){
-                    System.err.println("Error on token Stream");
+                    System.err.println("Error: "+sym);
+                    System.exit(1);
+                }else if(sym.getSym()==TinySym.EndGroup){
+                    System.err.println("Error: Unexpected unmatched ), "+sym.getSpan());
                     System.exit(1);
                 }
                 toks.add(sym);

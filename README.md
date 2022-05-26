@@ -105,9 +105,9 @@ and the two implemented ones in `github.chorman0773.tiny.opt.inline` and `github
 
 ## Planned Features
 
-- [ ] Rewrite of Lexer - If you want something done right, gotta do it yourself
+- [x] Rewrite of Lexer - If you want something done right, gotta do it yourself
 - [ ] Better Diagnostics - As much fun as Throwing an exception on a compiler error is
-- [ ] Token Spans - For Diagnostics
+- [x] Token Spans - For Diagnostics
 - [ ] Debug Info Generation - So you can decompile Tiny
 - [ ] Semantic Analysis Fixes
 
@@ -115,6 +115,7 @@ and the two implemented ones in `github.chorman0773.tiny.opt.inline` and `github
 
 The Tiny Language is minimal, but powerful. Using the above architecture, 
  the following extensions are planned:
+- [x] UAX #31 support (Unicode Identifiers)
 - [ ] String Expressions (including String Literal Expressions)
 - [ ] IO With Computed Paths
 - [ ] WHILE loops.
