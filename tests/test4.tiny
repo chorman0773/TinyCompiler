@@ -1,0 +1,7 @@
+/** compile-pass run-fail **/
+
+INT MAIN main() BEGIN
+    INT x;
+    x := 1 - 1;
+    IF (x==0) RETURN 1;
+END

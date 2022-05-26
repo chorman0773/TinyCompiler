@@ -5,6 +5,22 @@ Extensible Compiler of the Tiny Language showed in COMP-2140 "Compilers, Transla
 By default, the compiler compiles to JVM Bytecode, but using service providers,
  it is possible to configure the backend run by the program.
 
+## How to use
+
+To run the compiler, use `./gradlew run --args="<path to tiny file>`.
+
+By default, this generates a file in the same directory as the input file, 
+ but with the extension `.class` rather than `.tiny`. 
+If the codegen is overriden, then that codegen dictates the output extension instead.
+
+
+To run the resulting program, first the standard library needs to be built with 
+ `./gradlew tiny-stdlib:build`. 
+
+Then you can run the program with `java -cp .;tiny-stdlib/build/libs/tiny-stdlib-1.0.jar` (or use `:` instead of `;` on UNIX).
+
+
+
 ## Copyright
 
 Copyright (c) 2022 Connor Horman

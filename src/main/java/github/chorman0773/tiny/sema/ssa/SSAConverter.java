@@ -264,7 +264,7 @@ public class SSAConverter {
 
         for(var stat : method.getBlock().getStatements())
             convertStatement(stat);
-        if(!currBB.stats.get(currBB.stats.size()-1).isTerminator()){
+        if(currBB.stats.size()==0||!currBB.stats.get(currBB.stats.size()-1).isTerminator()){
             if(method.isMain())
                 currBB.stats.add(new StatReturn(new ExprInt(0)));
             else

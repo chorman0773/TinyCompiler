@@ -4,6 +4,7 @@ import github.chorman0773.tiny.sema.ssa.MethodSignature;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public class ExprCall extends SSAExpression {
     private final String name;
@@ -38,6 +39,19 @@ public class ExprCall extends SSAExpression {
         }
         st.append(")");
         return st.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ExprCall exprCall = (ExprCall) o;
+        return Objects.equals(name, exprCall.name) && Objects.equals(params, exprCall.params) && Objects.equals(callSig, exprCall.callSig);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, params, callSig);
     }
 
 }

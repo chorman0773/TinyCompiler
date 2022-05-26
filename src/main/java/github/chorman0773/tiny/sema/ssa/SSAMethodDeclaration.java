@@ -64,8 +64,8 @@ public class SSAMethodDeclaration {
         for(BasicBlock bb : blocks){
             st.append("\t")
                 .append(bb.getNum())
-                .append(": {\n")
-                .append("\t[")
+                .append(": {")
+                .append("// [")
                     .append(bb.getLocals().entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e->"_"+e.getKey()+": "+e.getValue()).collect(Collectors.joining(", "))).append("]\n");
 
 

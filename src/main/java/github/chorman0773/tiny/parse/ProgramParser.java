@@ -26,15 +26,13 @@ public class ProgramParser {
 
         boolean isMain = false;
         if(main.isPresent()){
-            it.next();
-            isMain = main.get().equals("MAIN");
+            checkNextToken(it,TinySym.Keyword,"MAIN");
+            isMain = true;
         }
 
-        String name = it.optNext().flatMap(id->id.<String>checkValue(TinySym.Identifier))
-                .orElseThrow(()->new SyntaxError("Unexpected Token"));
+        String name = getNextToken(it,TinySym.Identifier);
 
-        List<Symbol> paramSyms = it.optNext().flatMap(id->id.<List<Symbol>>checkValue(TinySym.ParenGroup))
-                .orElseThrow(()->new SyntaxError("Unexpected Token"));
+        List<Symbol> paramSyms = getNextToken(it,TinySym.ParenGroup);
 
         Peek<Symbol> peek = new Peek<>(paramSyms.iterator());
 
@@ -42,16 +40,13 @@ public class ProgramParser {
         while(peek.hasNext()){
             Type paramTy = parseType(peek);
             Optional<Symbol> next = peek.optNext();
-            String paramName = next.flatMap(id->id.<String>checkValue(TinySym.Identifier))
-                    .orElseThrow(()->new SyntaxError("Unexpected Token"));
+            String paramName = getNextToken(it,TinySym.Identifier);
             parameters.add(new Parameter(paramTy,paramName));
             if(!peek.hasNext())
                 break;
-            if(!peek.next().<String>checkValue(TinySym.Sigil).equals(Optional.of(",")))
-                throw new SyntaxError("Unexpected token");
+            checkNextToken(it,TinySym.Sigil,",");
             if(!peek.hasNext())
                 throw new SyntaxError("Unexpected end of input");
-
         }
 
         Block block = parseBlock(it);
@@ -60,8 +55,7 @@ public class ProgramParser {
     }
 
     public static Block parseBlock(Peek<Symbol> it) throws SyntaxError{
-        if(!it.next().<String>checkValue(TinySym.Keyword).equals(Optional.of("BEGIN")))
-            throw new SyntaxError("Unexpected token");
+        checkNextToken(it,TinySym.Keyword,"BEGIN");
         List<Statement> stats = new ArrayList<>();
         while(true){
             Symbol sym = it.peek().orElseThrow(() -> new SyntaxError("Unexpected EOF"));
@@ -74,6 +68,25 @@ public class ProgramParser {
                 stats.add(parseStatement(it));
         }
         return new Block(stats);
+    }
+
+    public static <S> S getNextToken(Peek<Symbol> it, TinySym kind) throws SyntaxError{
+        if(!it.hasNext())
+            throw new SyntaxError("Unexpected EOF");
+        else{
+            Symbol sym = it.next();
+            return sym.<S>checkValue(kind).orElseThrow(()->new SyntaxError("Unexpected token, got "+sym+", expected a "+kind));
+        }
+    }
+
+    public static <S> void checkNextToken(Peek<Symbol> it,TinySym kind,S value) throws SyntaxError {
+        if(!it.hasNext())
+            throw new SyntaxError("Unexpected EOF");
+        else{
+            Symbol sym = it.next();
+            if(!sym.<S>checkValue(kind).equals(Optional.of(value)))
+                throw new SyntaxError("Unexpected token, got "+sym+", expected "+kind+" ("+value + ")");
+        }
     }
 
     public static Statement parseStatement(Peek<Symbol> it) throws SyntaxError{
@@ -110,8 +123,7 @@ public class ProgramParser {
 
                     Expression expr = parseExpr(syms);
 
-                    if(!syms.optNext().flatMap(s->s.<String>checkValue(TinySym.Sigil)).equals(Optional.of(",")))
-                        throw new SyntaxError("Unexpected Token");
+                    checkNextToken(syms,TinySym.Sigil,",");
 
                     String qpath = syms.optNext().flatMap(s->s.<String>checkValue(TinySym.String)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
                     String path = qpath.substring(1,qpath.length()-1);
@@ -123,8 +135,7 @@ public class ProgramParser {
 
                     String id = syms.optNext().flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
 
-                    if(!syms.optNext().flatMap(s->s.<String>checkValue(TinySym.Sigil)).equals(Optional.of(",")))
-                        throw new SyntaxError("Unexpected Token");
+                    checkNextToken(syms,TinySym.Sigil,",");
 
                     String qpath = syms.optNext().flatMap(s->s.<String>checkValue(TinySym.String)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
                     String path = qpath.substring(1,qpath.length()-1);
@@ -143,15 +154,13 @@ public class ProgramParser {
             };
         }else{
             String id = it.optNext().flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
-            if(!it.optNext().flatMap(s->s.<String>checkValue(TinySym.Sigil)).equals(Optional.of(":=")))
-                throw new SyntaxError("Unexpected Token");
+            checkNextToken(it,TinySym.Sigil,":=");
             Expression init = parseExpr(it);
             stat = new StatementAssignment(id,init);
         }
 
         if(!stat.isBlock()){
-            if(!it.optNext().flatMap(s->s.<String>checkValue(TinySym.Sigil)).equals(Optional.of(";")))
-                throw new SyntaxError("Unexpected Token");
+            checkNextToken(it,TinySym.Sigil,";");
         }
         return stat;
     }

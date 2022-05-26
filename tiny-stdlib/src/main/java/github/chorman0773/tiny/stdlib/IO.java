@@ -3,7 +3,7 @@ package github.chorman0773.tiny.stdlib;
 import java.io.*;
 import java.util.Scanner;
 
-public class IO {
+class IO {
     static double readDouble(String path) throws IOException {
         try(Scanner reader = new Scanner(new FileReader(path))){
             return reader.nextDouble();

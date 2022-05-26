@@ -9,6 +9,7 @@ public class ProcBootstraps {
 
     static final MethodHandles.Lookup syslookup = MethodHandles.lookup();
 
+
     public static CallSite exit(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException {
         return new ConstantCallSite(syslookup.findStatic(java.lang.System.class,"exit",desc));
     }
@@ -30,5 +31,23 @@ public class ProcBootstraps {
             return new ConstantCallSite(syslookup.findStatic(Double.class,"parseDouble",desc));
         else
             return new ConstantCallSite(MethodHandles.explicitCastArguments(MethodHandles.identity(desc.returnType()),desc));
+    }
+
+    public static CallSite binop(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException{
+        if(desc.parameterCount()!=2)
+            throw new NoSuchMethodException("Cannot invoke" + name + " on "+desc.toMethodDescriptorString()+" binary operator must have at exactly two parameters");
+        else
+            return new ConstantCallSite(syslookup.findStatic(Ops.class,name,desc));
+    }
+
+    public static CallSite cmp(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException{
+        if(desc.parameterCount()!=2)
+            throw new NoSuchMethodException("Cannot invoke" + name + " on "+desc.toMethodDescriptorString()+" binary operator must have at exactly two parameters");
+        else if(desc.parameterType(0)==int.class)
+            return new ConstantCallSite(syslookup.findStatic(Integer.class,"compare",desc));
+        else if(desc.parameterType(0)==double.class)
+            return new ConstantCallSite(syslookup.findStatic(Double.class,"compare",desc));
+        else
+            return new ConstantCallSite(syslookup.findVirtual(Comparable.class,"compareTo",desc));
     }
 }

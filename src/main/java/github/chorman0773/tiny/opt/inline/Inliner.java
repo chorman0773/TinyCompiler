@@ -8,4 +8,8 @@ public class Inliner implements Optimizer {
     public SSAProgram optimize(SSAProgram prg) {
         return prg;
     }
+
+    public String toString(){
+        return "inliner";
+    }
 }
