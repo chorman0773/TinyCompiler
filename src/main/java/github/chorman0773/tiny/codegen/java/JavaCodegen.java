@@ -65,7 +65,8 @@ public class JavaCodegen implements Codegen {
     public static final Handle MAIN_BOOSTRAP = new Handle(Opcodes.H_INVOKESTATIC,"github/chorman0773/tiny/stdlib/ProcBootstraps","main",BOOTSTRAP_SIGNATURE, false);
     public static final Handle CAST_BOOTSTRAP = new Handle(Opcodes.H_INVOKESTATIC, "github/chorman0773/tiny/stdlib/ProcBootstraps","cast",BOOTSTRAP_SIGNATURE,false);
     public static final Handle BINOP_BOOTSTRAP = new Handle(Opcodes.H_INVOKESTATIC,"github/chorman0773/tiny/stdlib/ProcBootstraps","binaryOperator",BOOTSTRAP_SIGNATURE,false);
-    public static final Handle CMP_BOOTSTRAP = new Handle(Opcodes.H_INVOKESTATIC,"github/chorman0773/tiny/stdlib/ProcBootstraps","compare",BOOTSTRAP_SIGNATURE,false);
+    public static final Handle CMP_BOOTSTRAP = new Handle(Opcodes.H_INVOKESTATIC,"github/chorman0773/tiny/stdlib/ProcBootstraps","cmp",BOOTSTRAP_SIGNATURE,false);
+    public static final Handle UNREACHBALE_BOOTSTRAP = new Handle(Opcodes.H_INVOKESTATIC, "github/chorman0773/tiny/stdlib/ProcBootstraps","unreachable",BOOTSTRAP_SIGNATURE, false);
 
     @Override
     public void writeIR(SSAProgram prg) {

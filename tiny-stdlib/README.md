@@ -56,6 +56,7 @@ Expected Signature: `()I`
 
 Effects: Performs any startup needed by the Standard Library, 
 then invokes the method in the current module with the name of the call site using the signature `()I`.
+The result of using any other bootstrap method prior to this call is undefined.
 
 `CallSite github.chorman0773.tiny.stdlib.ProcBootstraps.exit(MethodHandles.Lookup lookup, String name, MethodType signature);`
 
@@ -64,6 +65,15 @@ Expected Signature: `(I)V`
 
 Effects: Performs any shutdown needed by the Standard Library,
  then exits the program with the `status` given as the argument, as though by `System.exit(status);`
+
+`CallSite github.chorman0773.tiny.stdlib.ProcBootstraps.unreachable(MethodHandles.Lookup lookup, String name, MethodType signature);`
+
+Expected Name: `unreachable`
+Expected Signature: `()Ljava/lang/Throwable;` or `()Ljava/lang/Error;`
+
+Effects: Returns an exception that can be thrown by the program indicating it has entered unreachable code.
+The result of using any other bootstrap method following this call is undefined. The program is expected to immediately 
+ throw the result.
 
 ### Runtime Dynamic Operations
 
@@ -131,3 +141,4 @@ Expected Signature: `(Ljava/lang/String;I)V`, `(Ljava/lang/String;D)V`, `(Ljava/
 Effects:
 Writes the second parameter to the file given as the first parameter.
 Throws an `IOException` if writing fails or the file is not found and cannot be created.
+

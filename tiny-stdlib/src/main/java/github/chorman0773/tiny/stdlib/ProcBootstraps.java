@@ -50,4 +50,12 @@ public class ProcBootstraps {
         else
             return new ConstantCallSite(syslookup.findVirtual(Comparable.class,"compareTo",desc));
     }
+    public static CallSite unreachable(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException{
+        if(desc.parameterCount()!=0)
+            throw new NoSuchMethodException("Cannot invoke unreachable on "+desc.toMethodDescriptorString()+". unreachable call must have no parameters");
+        else if(!desc.returnType().isAssignableFrom(UnreachableError.class))
+            throw new NoSuchMethodException("Cannot invoke unreachable on "+desc.toMethodDescriptorString()+". unreachable call must return Throwable");
+        else
+            return new ConstantCallSite(syslookup.findConstructor(UnreachableError.class,desc.changeReturnType(void.class)));
+    }
 }

@@ -331,6 +331,11 @@ public class JavaMethodCodegen {
                 case Real -> visit.visitInsn(Opcodes.DRETURN);
                 case String -> visit.visitInsn(Opcodes.ARETURN);
             }
+        }else if(stat instanceof StatNop){
+            visit.visitInsn(Opcodes.NOP);
+        }else if(stat instanceof StatUnreachable){
+            visit.visitInvokeDynamicInsn("unreachable","()Ljava/lang/Throwable;",JavaCodegen.UNREACHBALE_BOOTSTRAP);
+            visit.visitInsn(Opcodes.ATHROW);
         }else
             throw new RuntimeException("Internal Error: Unexpected statement " + stat);
     }
