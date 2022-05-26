@@ -1,0 +1,6 @@
+/** compile-pass run-pass **/
+INT MAIN main() BEGIN
+   INT x;
+   READ(x,"input-data/test2");
+   WRITE(x,"test-stdout");
+END

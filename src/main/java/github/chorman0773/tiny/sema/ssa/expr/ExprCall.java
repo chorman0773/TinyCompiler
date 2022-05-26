@@ -1,6 +1,6 @@
 package github.chorman0773.tiny.sema.ssa.expr;
 
-import github.chorman0773.tiny.sema.MethodSignature;
+import github.chorman0773.tiny.sema.ssa.MethodSignature;
 
 import java.util.Collections;
 import java.util.List;

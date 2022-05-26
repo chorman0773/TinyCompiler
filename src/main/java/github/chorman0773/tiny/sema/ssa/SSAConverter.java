@@ -1,9 +1,7 @@
 package github.chorman0773.tiny.sema.ssa;
 
-import com.sun.jdi.Method;
 import github.chorman0773.tiny.ast.*;
 import github.chorman0773.tiny.sema.ConversionError;
-import github.chorman0773.tiny.sema.MethodSignature;
 import github.chorman0773.tiny.sema.ssa.expr.*;
 import github.chorman0773.tiny.sema.ssa.expr.SSAExpression;
 import github.chorman0773.tiny.sema.ssa.stat.*;
@@ -23,14 +21,14 @@ public class SSAConverter {
             this.num = num;
             this.localNames = new HashMap<>();
             this.localNums = 0;
-            this.locals = new ArrayList<>();
+            this.locals = new HashMap<>();
             this.stats = new ArrayList<>();
             this.next = -1;
         }
         int num;
         Map<String,Integer> localNames;
         int localNums;
-        List<Type> locals;
+        Map<Integer,Type> locals;
         List<SSAStatement> stats;
         int next;
 
@@ -40,6 +38,7 @@ public class SSAConverter {
     }
 
     private int nextBlock;
+    private int nextLocal;
     private List<String> localNames;
     private Map<String, Type> localTypes;
     private BasicBlockBuilder currBB;
@@ -140,9 +139,9 @@ public class SSAConverter {
                 expr = new ExprCast(ty,expr);
             }
 
-            int newLoc = currBB.localNums++;
+            int newLoc = nextLocal++;
 
-            currBB.locals.add(ty);
+            currBB.locals.put(newLoc,ty);
 
             currBB.stats.add(new StatDeclaration(ty,newLoc,expr));
             if(currBB.localNames.containsKey(id)){
@@ -158,7 +157,9 @@ public class SSAConverter {
             localNames.add(name);
             var expr = decl.getInitializer();
             if(expr.isPresent()){
-                currBB.locals.add(ty);
+                int newLoc = nextLocal;
+                nextLocal+=2;
+                currBB.locals.put(newLoc,ty);
 
                 SSAExpression init = convertExpr(expr.get());
                 Type assignTy = typecheckExpr(init);
@@ -167,18 +168,19 @@ public class SSAConverter {
                     init = new ExprCast(ty,init);
                 }
 
-                currBB.stats.add(new StatDeclaration(ty,currBB.localNums++,init));
+                currBB.stats.add(new StatDeclaration(ty,newLoc,init));
             }
         }else if(stat instanceof StatementRead read){
             String id = read.getIdent();
             Type ty = localTypes.get(id);
             if(ty==null)
                 throw new ConversionError("Attempt to assign to undeclared local variable "+id);
-            int newLoc = currBB.localNums++;
+            int newLoc = nextLocal++;
             currBB.stats.add(new StatDeclaration(ty,newLoc,new ExprRead(ty,read.getPath())));
             if(currBB.localNames.containsKey(id)){
                 currBB.stats.add(new StatStoreDead(currBB.localNames.get(id)));
             }
+            currBB.locals.put(newLoc,ty);
             currBB.localNames.put(id,newLoc);
         }else if(stat instanceof StatementWrite write){
             SSAExpression expr = convertExpr(write.getValue());
@@ -199,9 +201,8 @@ public class SSAConverter {
             for(String name : this.localNames){
                 if(!lastBB.localNames.containsKey(name))
                     continue;
-                int localName = thenBB.localNums++;
-                thenBB.locals.add(this.localTypes.get(name));
-                thenBB.locals.add(this.localTypes.get(name));
+                int localName = nextLocal++;
+                thenBB.locals.put(localName,this.localTypes.get(name));
                 localMap.put(currBB.localNames.get(name),localName);
                 thenBB.localNames.put(name,localName);
             }
@@ -216,8 +217,8 @@ public class SSAConverter {
                 for(String name : this.localNames){
                     if(!lastBB.localNames.containsKey(name))
                         continue;
-                    int localName = elseBB.localNums++;
-                    elseBB.locals.add(this.localTypes.get(name));
+                    int localName = nextLocal++;
+                    elseBB.locals.put(localName,this.localTypes.get(name));
                     localMap.put(lastBB.localNames.get(name),localName);
                     elseBB.localNames.put(name,localName);
                 }
@@ -234,8 +235,8 @@ public class SSAConverter {
             for(String name : this.localNames){
                 if(!thenBB.localNames.containsKey(name)&&lastBB.localNames.containsKey(name))
                     continue;
-                int localName = nextBB.localNums++;
-                nextBB.locals.add(this.localTypes.get(name));
+                int localName = nextLocal++;
+                nextBB.locals.put(localName,this.localTypes.get(name));
                 localMap.put(lastBB.localNames.get(name),localName);
                 thenLocalMap.put(thenBB.localNames.get(name),localName);
                 nextBB.localNames.put(name,localName);
@@ -251,11 +252,12 @@ public class SSAConverter {
 
     public SSAMethodDeclaration convertMethod(github.chorman0773.tiny.ast.MethodDeclaration method){
         List<Type> params = new ArrayList<>();
+        nextLocal = 0;
         for(var param : method.getParameters()){
             this.localNames.add(param.getName());
             this.localTypes.put(param.getName(),param.getType());
-            int localName = currBB.localNums++;
-            currBB.locals.add(param.getType());
+            int localName = nextLocal++;
+            currBB.locals.put(localName,param.getType());
             currBB.localNames.put(param.getName(),localName);
             params.add(param.getType());
         }

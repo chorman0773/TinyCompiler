@@ -1,4 +1,4 @@
-package github.chorman0773.tiny.sema;
+package github.chorman0773.tiny.sema.ssa;
 
 import github.chorman0773.tiny.ast.Type;
 

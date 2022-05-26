@@ -4,6 +4,7 @@ import github.chorman0773.tiny.ast.*;
 import github.chorman0773.tiny.sema.ssa.stat.SSAStatement;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SSAMethodDeclaration {
     private final List<Type> params;
@@ -63,7 +64,11 @@ public class SSAMethodDeclaration {
         for(BasicBlock bb : blocks){
             st.append("\t")
                 .append(bb.getNum())
-                .append(": {\n");
+                .append(": {\n")
+                .append("\t[")
+                    .append(bb.getLocals().entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e->"_"+e.getKey()+": "+e.getValue()).collect(Collectors.joining(", "))).append("]\n");
+
+
             for(SSAStatement stat : bb.getStats())
                 st.append("\t\t").append(stat).append("\n");
             st.append("\t}\n");

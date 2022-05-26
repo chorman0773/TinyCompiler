@@ -47,7 +47,7 @@ public class StatBranchCompare extends SSAStatement {
         st.append(" [");
         String sep = "";
         for(Map.Entry<Integer,Integer> remap : remapLocals.entrySet()){
-            st.append(sep).append(remap.getKey()).append(" => ").append(remap.getValue());
+            st.append(sep).append("_").append(remap.getKey()).append(" => ").append("_").append(remap.getValue());
             sep = ", ";
         }
         st.append("]");

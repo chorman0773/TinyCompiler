@@ -1,0 +1,11 @@
+/** compile-pass run-pass **/
+INT MAIN main() BEGIN
+   INT x;
+   INT y;
+   READ(x,"input-data/test2");
+   IF (x==1)
+       y := 0;
+   ELSE
+       y := x;
+   WRITE(y,"test-stdout");
+END
