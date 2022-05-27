@@ -39,6 +39,16 @@ public class TinyLexer {
                 if(c=='\n') {
                     line++;
                     col = 0;
+                }else if(c=='\r'){
+                    if(!it.hasNext())
+                        return Optional.of(new Symbol(TinySym.Error,"Unexpected End of File in Comment",new Span(filename,lineStart,colStart,line,col)));
+                    c = it.next();
+                    if(c!='\n')
+                        return Optional.of(new Symbol(TinySym.Error,"Expected Newline after Carriage Return, got " + c, new Span(filename,line,col,line,col+1)));
+                    else{
+                        line++;
+                        col = 0;
+                    }
                 }
             }
         }
@@ -55,6 +65,19 @@ public class TinyLexer {
             if(c=='\n'){
                 col = 0;
                 line++;
+            }if(c=='\r'){
+                tok = it.optNext();
+                if(tok.isEmpty())
+                    return new Symbol(TinySym.Error,"Expected Newline after Carriage Return, got EOF", new Span(filename,line,col,line,col+1));
+
+                c = tok.get();
+                if(c!='\n')
+                    return new Symbol(TinySym.Error,"Expected Newline after Carriage Return, got " + c, new Span(filename,line,col,line,col+1));
+                else{
+                    col = 0;
+                    line++;
+                    continue;
+                }
             }else if(c=='/') {
                 col++;
                 int lineStart = line;
@@ -163,6 +186,8 @@ public class TinyLexer {
                 col++;
                 if(c=='\n')
                     return new Symbol(TinySym.Error, "Unexpected newline in string literal", new Span(filename, line, col-1, line+1, 0));
+                else if(c=='\r')
+                    return new Symbol(TinySym.Error, "Unexpected Carriage Return in string literal", new Span(filename, line, col-1, line+1, 0));
                 strLit.appendCodePoint(c);
             }while(c!='"');
             return new Symbol(TinySym.String,strLit.toString(),new Span(filename,lineStart,colStart,line,col));

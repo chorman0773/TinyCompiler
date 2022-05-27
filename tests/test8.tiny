@@ -1,0 +1,4 @@
+/** compile-fail no-run **/
+INT MAIN funcMain() BEGIN
+    RETURN "hello";
+END

@@ -120,6 +120,7 @@ The Tiny Language is minimal, but powerful. Using the above architecture,
 - [ ] IO With Computed Paths
 - [ ] WHILE loops.
 - [ ] Additional Comparisons for `IF` and `WHILE` statements
+- [ ] Boolean Operators (`||`, `&&`, and `!`)
 - [ ] Additional types
 - [ ] Libraries and importing.
 

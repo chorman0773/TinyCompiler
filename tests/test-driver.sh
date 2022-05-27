@@ -86,7 +86,7 @@ dotest(){
                 ;;
           esac
         else
-          while IFS="$" read -r data
+          while read -d '@' -r data
             do
               IFS="!" read -r input xoutput <<< "$data"
               echo "$input" > test-stdin
@@ -103,23 +103,29 @@ dotest(){
                     return 1
                   elif [ "$output" != "$xoutput" ]
                   then
-                    echo  -e "\033[0;31mFAIL\033[0m  $file (incorrect output)"
+                    echo  -e "\033[0;31mFAIL\033[0m  $file (incorrect output: Expected $xoutput, got $output)"
                     return 1
-                  else
-                    echo -e "\033[0;32mPASS\033[0m $file"
                   fi
                   ;;
                 fail )
                   if [ $res -eq 0 ]
                   then
                     echo -e "\033[0;31mXPASS\033[0m $file"
-                  else
-                    echo -e "\033[1;31mXFAIL\033[0m $file"
                     return 1
                   fi
                   ;;
             esac
             done <<< "$input_data"
+            case "$runmode" in
+              pass )
+                echo -e "\033[0;32mPASS\033[0m $file"
+                return 0
+                ;;
+              fail )
+                echo -e "\033[1;31mXFAIL\033[0m $file"
+                return 0
+                ;;
+            esac
         fi
         ;;
       * )
@@ -134,13 +140,26 @@ buildCompiler
 
 status=0
 
-for file in tests/test*.tiny
-do
-  dotest "$file"
-  if [ $? -ne 0 ]
-  then
-    status=1
-  fi
-done
+if [ $# -ge 1 ]
+then
+  for file in "$@"
+    do
+      dotest "$file"
+      if [ $? -ne 0 ]
+      then
+        status=1
+      fi
+    done
+
+else
+  for file in tests/test*.tiny
+  do
+    dotest "$file"
+    if [ $? -ne 0 ]
+    then
+      status=1
+    fi
+  done
+fi
 
 exit $status
