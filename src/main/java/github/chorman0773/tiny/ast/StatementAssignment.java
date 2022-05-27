@@ -1,15 +1,17 @@
 package github.chorman0773.tiny.ast;
 
+import github.chorman0773.tiny.lex.Span;
+
 public class StatementAssignment extends Statement {
-    private final String name;
+    private final Identifier name;
     private final Expression value;
 
-    public StatementAssignment(String id, Expression value){
+    public StatementAssignment(Identifier id, Expression value){
         this.name = id;
         this.value = value;
     }
 
-    public String getIdent(){
+    public Identifier getIdent(){
         return name;
     }
 
@@ -18,6 +20,6 @@ public class StatementAssignment extends Statement {
     }
 
     public String toString(){
-        return name + ":=" + value;
+        return name +":=" + value;
     }
 }

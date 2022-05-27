@@ -1,6 +1,7 @@
 package github.chorman0773.tiny.parse;
 
 import github.chorman0773.tiny.ast.*;
+import github.chorman0773.tiny.lex.Span;
 import github.chorman0773.tiny.lex.Symbol;
 import github.chorman0773.tiny.lex.TinySym;
 import github.chorman0773.tiny.util.Peek;
@@ -142,20 +143,22 @@ public class ProgramParser {
                 }
                 default -> {
                     Type ty = parseType(it);
-                    String id = it.optNext().flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
+                    Optional<Symbol> tok = it.optNext();
+                    String id = tok.flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
                     Expression init = null;
                     if(it.peek().flatMap(s->s.<String>checkValue(TinySym.Sigil)).equals(Optional.of(":="))){
                         it.next();
                         init = parseExpr(it);
                     }
-                    yield new StatementDeclaration(ty,id,init);
+                    yield new StatementDeclaration(ty,new Identifier(id,tok.get().getSpan()),init);
                 }
             };
         }else{
-            String id = it.optNext().flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
+            Optional<Symbol> tok = it.optNext();
+            String id = tok.flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
             checkNextToken(it,TinySym.Sigil,":=");
             Expression init = parseExpr(it);
-            stat = new StatementAssignment(id,init);
+            stat = new StatementAssignment(new Identifier(id,tok.get().getSpan()),init);
         }
 
         if(!stat.isBlock()){
@@ -217,6 +220,7 @@ public class ProgramParser {
         return switch(sym.getSym()){
             case Identifier -> {
                 String id = (String)sym.getValue();
+                Span span = sym.getSpan();
                 Optional<List<Symbol>> optParams = it.peek().flatMap(s->s.checkValue(TinySym.ParenGroup));
                 if(optParams.isPresent()){
                     List<Symbol> paramToks = optParams.get();
@@ -235,7 +239,7 @@ public class ProgramParser {
                     }
                     yield new ExpressionCall(id,args);
                 }else
-                    yield new ExpressionId(id);
+                    yield new ExpressionId(new Identifier(id,span));
             }
             case ParenGroup ->  {
                 Peek<Symbol> inner = new Peek<>(((List<Symbol>)sym.getValue()).iterator());

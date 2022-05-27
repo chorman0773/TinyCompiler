@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public class TinyLexer {
     private String filename;
-    private Peek<Character> it;
+    private Peek<Integer> it;
     private int col;
     private int line;
 
@@ -19,7 +19,7 @@ public class TinyLexer {
     }
 
     public TinyLexer(String fname,Reader r){
-        it = new Peek<>(new ReadIterator(new BufferedReader(r)));
+        it = new Peek<>(new CodePointIterator(new ReadIterator(new BufferedReader(r))));
         this.filename = fname;
     }
 
@@ -28,7 +28,7 @@ public class TinyLexer {
         while(true) {
             if(!it.hasNext())
                 return Optional.of(new Symbol(TinySym.Error,"Unexpected End of File in Comment",new Span(filename,lineStart,colStart,line,col)));
-            char c = it.next();
+            int c = it.next();
             col++;
             if(c=='*'&&(stage==0||stage==1))
                 stage++;
@@ -45,7 +45,7 @@ public class TinyLexer {
     }
 
     public Symbol nextToken() {
-        char c;
+        int c;
         do {
             var tok = it.optNext();
             if (tok.isEmpty())
@@ -60,21 +60,21 @@ public class TinyLexer {
                 int lineStart = line;
                 int colStart = col;
                 tok = it.peek();
-                if(tok.equals(Optional.of('*'))) {
+                if(tok.equals(Optional.of((int)'*'))) {
                     System.err.println("Starting Comment Group");
                     it.next();
                     col++;
                     tok = it.peek();
-                    if(tok.equals(Optional.of('*'))) {
+                    if(tok.equals(Optional.of((int)'*'))) {
                         it.next();
                         col++;
                         var err = lexComment(lineStart, colStart);
                         if(err.isPresent())
                             return err.get();
+                        continue;
                     }else
                         return new Symbol(TinySym.Error,"Unexpected /* that did not introduce a comment",new Span(filename,lineStart,colStart,line,col));
                 }
-                continue;
             }else if(Character.isWhitespace(c))
                 col++;
 
@@ -86,7 +86,7 @@ public class TinyLexer {
         col++;
         if(Character.isUnicodeIdentifierStart(c)){
             StringBuilder id = new StringBuilder();
-            id.append(c);
+            id.appendCodePoint(c);
 
             do {
                 var tok = it.peek();
@@ -95,7 +95,7 @@ public class TinyLexer {
                 c =tok.get();
                 if(Character.isUnicodeIdentifierPart(c)){
                     col++;
-                    id.append(c);
+                    id.appendCodePoint(c);
                     it.next();
                 }
             }while(Character.isUnicodeIdentifierPart(c));
@@ -109,7 +109,7 @@ public class TinyLexer {
             return new Symbol(kind,ident,s);
         }else if(Character.isDigit(c)) {
             StringBuilder num = new StringBuilder();
-            num.append(c);
+            num.appendCodePoint(c);
             do {
                 var tok = it.peek();
                 if(tok.isEmpty())
@@ -118,7 +118,7 @@ public class TinyLexer {
                 if(Character.isDigit(c)) {
                     it.next();
                     col++;
-                    num.append(c);
+                    num.appendCodePoint(c);
                 }else if(Character.isUnicodeIdentifierStart(c)) {
                     return new Symbol(TinySym.Error,"Expected a digit, got '"+c+"'",new Span(filename,lineStart,colStart,line,col));
                 }else
@@ -126,7 +126,7 @@ public class TinyLexer {
             }while(true);
 
             var tok = it.peek();
-            if(tok.equals(Optional.of('.'))) {
+            if(tok.equals(Optional.of((int)'.'))) {
                 it.next();
                 col++;
                 tok = it.optNext();
@@ -135,7 +135,7 @@ public class TinyLexer {
                 c = tok.get();
                 if(!Character.isDigit(c))
                     return new Symbol(TinySym.Error,"Expected a digit, got '"+c+"'",new Span(filename,lineStart,colStart,line,col));
-                num.append(c);
+                num.appendCodePoint(c);
                 do {
                     tok = it.peek();
                     if(tok.isEmpty())
@@ -144,7 +144,7 @@ public class TinyLexer {
                     if(Character.isDigit(c)) {
                         it.next();
                         col++;
-                        num.append(c);
+                        num.appendCodePoint(c);
                     }else if(Character.isUnicodeIdentifierStart(c)) {
                         return new Symbol(TinySym.Error,"Expected a digit, got '"+c+"'",new Span(filename,lineStart,colStart,line,col));
                     }else
@@ -155,11 +155,14 @@ public class TinyLexer {
             return new Symbol(TinySym.Number,Double.valueOf(val),new Span(filename,lineStart,colStart,line,col));
         }else if(c=='"') {
             StringBuilder strLit = new StringBuilder();
-            strLit.append(c);
+            strLit.appendCodePoint(c);
             do {
                 if(!it.hasNext())
                     return new Symbol(TinySym.Error,"Expected \" to terminate string, got EOF",new Span(filename,lineStart,colStart,line,col));
                 c = it.next();
+                col++;
+                if(c=='\n')
+                    return new Symbol(TinySym.Error, "Unexpected newline in string literal", new Span(filename, line, col-1, line+1, 0));
                 strLit.append(c);
             }while(c!='"');
             return new Symbol(TinySym.String,strLit.toString(),new Span(filename,lineStart,colStart,line,col));
@@ -182,23 +185,23 @@ public class TinyLexer {
             return new Symbol(TinySym.ParenGroup,toks,parenSpan);
         }else{
             switch(c){
-                case '/', '*', '+', '-', ',', ';' -> {return new Symbol(TinySym.Sigil,String.valueOf(c),new Span(filename,lineStart,colStart,line,col));}
+                case '/', '*', '+', '-', ',', ';' -> {return new Symbol(TinySym.Sigil,Character.toString(c),new Span(filename,lineStart,colStart,line,col));}
                 case ':','!' -> {
-                    String tok = String.valueOf(c);
+                    String tok = Character.toString(c);
                     if(!it.hasNext())
                         return new Symbol(TinySym.Error,"Expected =, got EOF",new Span(filename,lineStart,colStart,line,col));
                     c = it.next();
                     col++;
                     if(c!='=')
                         return new Symbol(TinySym.Error, "Expected =, got "+c,new Span(filename,lineStart,colStart,line,col));
-                    tok += c;
+                    tok += Character.toString(c);
                     return new Symbol(TinySym.Sigil,tok,new Span(filename,lineStart,colStart,line,col));
                 }
                 case '=' -> {
-                    String tok = String.valueOf(c);
+                    String tok = Character.toString(c);
                     var nc = it.peek();
 
-                    if(nc.equals(Optional.of('='))){
+                    if(nc.equals(Optional.of((int)'='))){
                         it.next();
                         col++;
                         tok += '=';

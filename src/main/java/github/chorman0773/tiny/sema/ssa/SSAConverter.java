@@ -80,7 +80,7 @@ public class SSAConverter {
 
     public SSAExpression convertExpr(github.chorman0773.tiny.ast.Expression expr){
         if(expr instanceof ExpressionId id){
-            Integer local = currBB.localNames.get(id.getIdentifier());
+            Integer local = currBB.localNames.get(id.getIdentifier().name());
             if(local==null)
                 throw new ConversionError("Attempt to use undefined or uninitialized local "+id.getIdentifier());
             int localN = local;
@@ -126,7 +126,7 @@ public class SSAConverter {
 
     public void convertStatement(github.chorman0773.tiny.ast.Statement stat){
         if(stat instanceof StatementAssignment assign){
-            String id = assign.getIdent();
+            String id = assign.getIdent().name();
             SSAExpression expr = convertExpr(assign.getValue());
 
             Type ty = localTypes.get(id);
@@ -150,7 +150,7 @@ public class SSAConverter {
             currBB.localNames.put(id,newLoc);
         }else if(stat instanceof StatementDeclaration decl){
             Type ty = decl.getType();
-            String name = decl.getName();
+            String name = decl.getName().name();
 
             if(localTypes.putIfAbsent(name,ty)!=null)
                 throw new ConversionError("Attempt to refine existing local variable "+name);

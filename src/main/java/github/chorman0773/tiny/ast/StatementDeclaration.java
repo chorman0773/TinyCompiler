@@ -1,23 +1,26 @@
 package github.chorman0773.tiny.ast;
 
+import github.chorman0773.tiny.lex.Span;
+
 import java.util.Optional;
 
 public class StatementDeclaration extends Statement{
     private final Type ty;
-    private final String name;
+    private final Identifier name;
     private final Expression init;
 
-    public StatementDeclaration(Type ty, String name, Expression init){
+    public StatementDeclaration(Type ty, Identifier name, Expression init){
         this.ty = ty;
         this.name = name;
         this.init = init;
     }
 
+
     public Type getType(){
         return ty;
     }
 
-    public String getName(){
+    public Identifier getName(){
         return name;
     }
 

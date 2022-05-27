@@ -38,6 +38,7 @@ public class ReadIterator implements Iterator<Character> {
         this.val = -2;
         if(val==-1)
             throw new NoSuchElementException("No more characters on stream");
+
         return (char)val;
     }
 }

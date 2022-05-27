@@ -1,9 +1,11 @@
 package github.chorman0773.tiny.ast;
 
-public class ExpressionId extends Expression{
-    private final String id;
+import github.chorman0773.tiny.lex.Span;
 
-    public ExpressionId(String id){
+public class ExpressionId extends Expression{
+    private final Identifier id;
+
+    public ExpressionId(Identifier id){
         this.id = id;
     }
 
@@ -11,7 +13,7 @@ public class ExpressionId extends Expression{
         return "Id("+this.id+")";
     }
 
-    public String getIdentifier(){
+    public Identifier getIdentifier(){
         return id;
     }
 }
