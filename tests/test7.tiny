@@ -1,0 +1,9 @@
+/** compile-pass run-pass **/
+
+INT MAIN f0() BEGIN
+    INT x;
+    REAL y;
+    READ(y,"test-stdin");
+    x := y;
+    WRITE(x,"test-stdout");
+END

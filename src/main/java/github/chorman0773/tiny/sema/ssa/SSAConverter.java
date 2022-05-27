@@ -35,6 +35,17 @@ public class SSAConverter {
         BasicBlock build(){
             return new BasicBlock(num,next,locals,stats);
         }
+
+        public Optional<SSAStatement> getLastStatement(){
+            if(stats.size()==0)
+                return Optional.empty();
+            else
+                return Optional.of(stats.get(stats.size()-1));
+        }
+
+        public boolean hasTerminator(){
+            return stats.size()!=0&&stats.get(stats.size()-1).isTerminator();
+        }
     }
 
     private int nextBlock;
@@ -72,7 +83,7 @@ public class SSAConverter {
         }else if(expr instanceof ExprCast cast){
             return cast.getType();
         }else if(expr instanceof ExprCall call){
-            return signature.get(call.getFunction()).ret();
+            return signature.get(call.getFunction().name()).ret();
         }else
             throw new ConversionError("Unrecognized expression type "+expr);
     }
@@ -99,7 +110,7 @@ public class SSAConverter {
                 return new ExprOp(bin.getOperator(), left, new ExprCast(leftTy, right));
         }else if(expr instanceof ExpressionCall call){
             List<SSAExpression> args =call.getParameters().stream().map(this::convertExpr).collect(Collectors.toList());
-            MethodSignature sig = signature.get(call.getMethodName());
+            MethodSignature sig = signature.get(call.getMethodName().name());
             if(sig==null)
                 throw new ConversionError("Attempt to call undeclared function "+call.getMethodName());
             if(sig.params().size()!=args.size())
@@ -193,6 +204,25 @@ public class SSAConverter {
             }
         }else if(stat instanceof StatementIf cond){
             BooleanExpr ctrl = cond.getControl();
+
+            SSAExpression left = convertExpr(ctrl.getLeft());
+            SSAExpression right = convertExpr(ctrl.getRight());
+
+            Type leftTy = typecheckExpr(left);
+            Type rightTy = typecheckExpr(right);
+
+
+            if(leftTy!=rightTy){
+                if(leftTy == Type.String)
+                    right = new ExprCast(leftTy,right);
+                else if(rightTy == Type.String)
+                    left = new ExprCast(rightTy, left);
+                else if(leftTy == Type.Real)
+                    right = new ExprCast(leftTy,right);
+                else
+                    left = new ExprCast(rightTy, left);
+            }
+
             Statement then = cond.getIf();
             Optional<Statement> orelse = cond.getElse();
             BasicBlockBuilder thenBB = new BasicBlockBuilder(nextBlock++);
@@ -206,7 +236,7 @@ public class SSAConverter {
                 localMap.put(currBB.localNames.get(name),localName);
                 thenBB.localNames.put(name,localName);
             }
-            lastBB.stats.add(new StatBranchCompare(thenBB.num,ctrl.getOperator(),convertExpr(ctrl.getLeft()),convertExpr(ctrl.getRight()),localMap));
+            lastBB.stats.add(new StatBranchCompare(thenBB.num,ctrl.getOperator(),left,right,localMap));
             currBB = thenBB;
             convertStatement(then);
 
@@ -228,24 +258,31 @@ public class SSAConverter {
                 lastBB = elseBB;
                 convertStatement(orelse.get());
             }
+            boolean thenHasTerm = thenBB.hasTerminator();
+            boolean elseHasTerm = lastBB.hasTerminator();
 
-            BasicBlockBuilder nextBB = new BasicBlockBuilder(nextBlock++);
-            Map<Integer,Integer> thenLocalMap = new HashMap<>();
-            localMap = new HashMap<>();
-            for(String name : this.localNames){
-                if(!thenBB.localNames.containsKey(name)&&lastBB.localNames.containsKey(name))
-                    continue;
-                int localName = nextLocal++;
-                nextBB.locals.put(localName,this.localTypes.get(name));
-                localMap.put(lastBB.localNames.get(name),localName);
-                thenLocalMap.put(thenBB.localNames.get(name),localName);
-                nextBB.localNames.put(name,localName);
+            if(!(thenHasTerm&&elseHasTerm)){
+                BasicBlockBuilder nextBB = new BasicBlockBuilder(nextBlock++);
+                Map<Integer,Integer> thenLocalMap = new HashMap<>();
+                localMap = new HashMap<>();
+                for(String name : this.localNames){
+                    if(!thenBB.localNames.containsKey(name)&&lastBB.localNames.containsKey(name))
+                        continue;
+                    int localName = nextLocal++;
+                    nextBB.locals.put(localName,this.localTypes.get(name));
+                    localMap.put(lastBB.localNames.get(name),localName);
+                    thenLocalMap.put(thenBB.localNames.get(name),localName);
+                    nextBB.localNames.put(name,localName);
+                }
+                if(!thenHasTerm)
+                    thenBB.stats.add(new StatBranch(nextBB.num,thenLocalMap));
+                if(!elseHasTerm)
+                    lastBB.stats.add(new StatBranch(nextBB.num, localMap));
+                currBB = nextBB;
             }
-            thenBB.stats.add(new StatBranch(nextBB.num,thenLocalMap));
-            lastBB.stats.add(new StatBranch(nextBB.num, localMap));
-            this.basicBlocks.add(lastBB.build());
+            if(!elseHasTerm)
+                this.basicBlocks.add(lastBB.build());
             this.basicBlocks.add(thenBB.build());
-            currBB = nextBB;
         }else
             throw new ConversionError("Unrecognized statement "+ stat);
     }
@@ -267,8 +304,10 @@ public class SSAConverter {
         if(currBB.stats.size()==0||!currBB.stats.get(currBB.stats.size()-1).isTerminator()){
             if(method.isMain())
                 currBB.stats.add(new StatReturn(new ExprInt(0)));
-            else
+            else{
                 throw new ConversionError("No return statement from function "+method.getName());
+            }
+
         }
         this.basicBlocks.add(currBB.build());
 

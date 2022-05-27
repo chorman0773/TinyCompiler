@@ -1,0 +1,7 @@
+/** compile-pass no-run **/
+
+INT f0(REAL x) BEGIN
+    INT y;
+    y := x;
+    IF(x == y) RETURN 1; ELSE RETURN 0;
+END

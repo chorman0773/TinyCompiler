@@ -163,7 +163,7 @@ public class TinyLexer {
                 col++;
                 if(c=='\n')
                     return new Symbol(TinySym.Error, "Unexpected newline in string literal", new Span(filename, line, col-1, line+1, 0));
-                strLit.append(c);
+                strLit.appendCodePoint(c);
             }while(c!='"');
             return new Symbol(TinySym.String,strLit.toString(),new Span(filename,lineStart,colStart,line,col));
         }else if(c==')'){

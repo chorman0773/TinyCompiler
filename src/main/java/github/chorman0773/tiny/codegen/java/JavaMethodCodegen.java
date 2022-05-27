@@ -57,7 +57,7 @@ public class JavaMethodCodegen {
         for(BasicBlock bb : bbs){
             currBB = bb;
             if(bb.getNum()!=0)
-                visit.visitFrame(Opcodes.F_SAME,0,null,0,null);
+                visit.visitFrame(Opcodes.F_SAME,nextRealLocal,null,0,null);
             bbLabels.putIfAbsent(bb.getNum(),new Label());
             Label l = bbLabels.get(bb.getNum());
             visit.visitLabel(l);
@@ -179,7 +179,7 @@ public class JavaMethodCodegen {
             for(var arg : call.getParameters())
                 this.writeExpr(arg);
             stackDepth -= call.getParameters().size();
-            visit.visitMethodInsn(Opcodes.INVOKESTATIC,this.clName,call.getFunction(),signature,false);
+            visit.visitMethodInsn(Opcodes.INVOKESTATIC,this.clName,call.getFunction().name(),signature,false);
         }else if(expr instanceof ExprLocal n){
             System.err.println("Codegening Local:" + n);
             int loc = n.getLocalNumber();

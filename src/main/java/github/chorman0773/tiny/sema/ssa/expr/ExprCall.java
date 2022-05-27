@@ -1,5 +1,6 @@
 package github.chorman0773.tiny.sema.ssa.expr;
 
+import github.chorman0773.tiny.ast.Identifier;
 import github.chorman0773.tiny.sema.ssa.MethodSignature;
 
 import java.util.Collections;
@@ -7,17 +8,17 @@ import java.util.List;
 import java.util.Objects;
 
 public class ExprCall extends SSAExpression {
-    private final String name;
+    private final Identifier name;
     private final List<SSAExpression> params;
     private final MethodSignature callSig;
 
-    public ExprCall(String name, List<SSAExpression> params,MethodSignature sig){
+    public ExprCall(Identifier name, List<SSAExpression> params, MethodSignature sig){
         this.name = name;
         this.params = params;
         this.callSig = sig;
     }
 
-    public String getFunction(){
+    public Identifier getFunction(){
         return name;
     }
 

@@ -219,8 +219,9 @@ public class ProgramParser {
 
         return switch(sym.getSym()){
             case Identifier -> {
-                String id = (String)sym.getValue();
+                String name = (String)sym.getValue();
                 Span span = sym.getSpan();
+                Identifier id = new Identifier(name,span);
                 Optional<List<Symbol>> optParams = it.peek().flatMap(s->s.checkValue(TinySym.ParenGroup));
                 if(optParams.isPresent()){
                     List<Symbol> paramToks = optParams.get();
@@ -239,7 +240,7 @@ public class ProgramParser {
                     }
                     yield new ExpressionCall(id,args);
                 }else
-                    yield new ExpressionId(new Identifier(id,span));
+                    yield new ExpressionId(id);
             }
             case ParenGroup ->  {
                 Peek<Symbol> inner = new Peek<>(((List<Symbol>)sym.getValue()).iterator());

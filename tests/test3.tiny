@@ -2,7 +2,7 @@
 INT MAIN main() BEGIN
    INT x;
    INT y;
-   READ(x,"input-data/test3");
+   READ(x,"test-stdin");
    IF (x==1)
        y := 0;
    ELSE

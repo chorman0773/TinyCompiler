@@ -1,3 +1,5 @@
 *.class
 build/
 .gradle/
+test-stdin
+test-stdout

@@ -21,7 +21,7 @@ public class ConstantFolder implements Optimizer {
         else if(expr instanceof ExprFloat f)
             return new TransparentFloat(f);
         else if(expr instanceof ExprCast c){
-            SSAValue val = convertExpr(c);
+            SSAValue val = convertExpr(c.getExpr());
             if(val instanceof TransparentInt i){
                 return switch(c.getType()){
                     case Int -> i;

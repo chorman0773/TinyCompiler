@@ -5,6 +5,7 @@ import github.chorman0773.tiny.sema.ssa.stat.SSAStatement;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class BasicBlock {
     private final int num;
@@ -33,5 +34,16 @@ public class BasicBlock {
 
     public List<SSAStatement> getStats() {
         return stats;
+    }
+
+    public Optional<SSAStatement> getLastStatement(){
+        if(stats.size()==0)
+            return Optional.empty();
+        else
+            return Optional.of(stats.get(stats.size()-1));
+    }
+
+    public boolean hasTerminator(){
+        return stats.size()!=0&&stats.get(stats.size()-1).isTerminator();
     }
 }

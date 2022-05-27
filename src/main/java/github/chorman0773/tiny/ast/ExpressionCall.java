@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ExpressionCall extends Expression{
-    private String name;
+    private Identifier name;
     private List<Expression> parameters;
 
-    public ExpressionCall(String method, List<Expression> parameters){
+    public ExpressionCall(Identifier method, List<Expression> parameters){
         this.name = method;
         this.parameters = parameters;
     }
@@ -18,7 +18,7 @@ public class ExpressionCall extends Expression{
         return Collections.unmodifiableList(parameters);
     }
 
-    public String getMethodName(){
+    public Identifier getMethodName(){
         return name;
     }
 
