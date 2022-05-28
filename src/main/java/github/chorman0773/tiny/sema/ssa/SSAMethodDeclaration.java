@@ -69,8 +69,14 @@ public class SSAMethodDeclaration {
                     .append(bb.getLocals().entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e->"_"+e.getKey()+": "+e.getValue()).collect(Collectors.joining(", "))).append("]\n");
 
 
-            for(SSAStatement stat : bb.getStats())
-                st.append("\t\t").append(stat).append("\n");
+            for(SSAStatement stat : bb.getStats()){
+                st.append("\t\t").append(stat);
+                if(stat.isTerminator())
+                    st.append(" // Next Block: ").append(bb.getNext());
+
+                st.append("\n");
+            }
+
             st.append("\t}\n");
         }
         st.append("}\n");

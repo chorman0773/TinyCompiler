@@ -12,4 +12,8 @@ public class Inliner implements Optimizer {
     public String toString(){
         return "inliner";
     }
+
+    public String getName(){
+        return "inliner";
+    }
 }

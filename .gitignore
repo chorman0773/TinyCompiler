@@ -3,3 +3,4 @@ build/
 .gradle/
 test-stdin
 test-stdout
+*.mir

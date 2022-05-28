@@ -149,4 +149,8 @@ public class ConstantFolder implements Optimizer {
     public String toString(){
         return "constant-fold";
     }
+
+    public String getName(){
+        return "constant-fold";
+    }
 }
