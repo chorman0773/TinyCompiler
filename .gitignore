@@ -4,3 +4,4 @@ build/
 test-stdin
 test-stdout
 *.mir
+*.ast
