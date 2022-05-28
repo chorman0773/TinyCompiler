@@ -84,7 +84,6 @@ public class TinyLexer {
                 int colStart = col;
                 tok = it.peek();
                 if(tok.equals(Optional.of((int)'*'))) {
-                    System.err.println("Starting Comment Group");
                     it.next();
                     col++;
                     tok = it.peek();

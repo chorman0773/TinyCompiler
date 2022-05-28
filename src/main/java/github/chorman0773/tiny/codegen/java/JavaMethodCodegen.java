@@ -65,7 +65,6 @@ public class JavaMethodCodegen {
                 writeStatement(stat);
             }
         }
-        System.err.printf("Finished Codegening function with %d stack depth and %d locals",maxStackDepth,this.nextRealLocal);
         visit.visitMaxs(maxStackDepth,this.nextRealLocal);
     }
 
@@ -181,7 +180,6 @@ public class JavaMethodCodegen {
             stackDepth -= call.getParameters().size();
             visit.visitMethodInsn(Opcodes.INVOKESTATIC,this.clName,call.getFunction().name(),signature,false);
         }else if(expr instanceof ExprLocal n){
-            System.err.println("Codegening Local:" + n);
             int loc = n.getLocalNumber();
             int realLoc = this.tinyLocalToReal(loc);
             Type ty = currBB.getLocals().get(loc);
@@ -245,7 +243,6 @@ public class JavaMethodCodegen {
     private void writeStatement(SSAStatement stat){
         stackDepth = 0;
         if(stat instanceof StatDeclaration decl){
-            System.err.println("Codegening Declaration: "+decl);
             Label begin = new Label();
             Label end = new Label();
 

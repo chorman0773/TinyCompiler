@@ -9,7 +9,6 @@ import github.chorman0773.tiny.codegen.CodegenService;
 import github.chorman0773.tiny.codegen.java.JavaCodegenService;
 import github.chorman0773.tiny.lex.Symbol;
 import github.chorman0773.tiny.lex.TinyLexer;
-import github.chorman0773.tiny.lex.TinyScanner;
 import github.chorman0773.tiny.lex.TinySym;
 import github.chorman0773.tiny.opt.Optimizer;
 import github.chorman0773.tiny.parse.ProgramParser;

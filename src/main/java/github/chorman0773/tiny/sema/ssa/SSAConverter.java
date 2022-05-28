@@ -53,6 +53,7 @@ public class SSAConverter {
     private List<String> localNames;
     private Map<String, Type> localTypes;
     private BasicBlockBuilder currBB;
+    private MethodSignature currSig;
 
     public SSAConverter(){
         this.signature = new HashMap<>();
@@ -197,7 +198,11 @@ public class SSAConverter {
             SSAExpression expr = convertExpr(write.getValue());
             currBB.stats.add(new StatWrite(expr,write.getPath()));
         }else if(stat instanceof StatementReturn ret){
-            currBB.stats.add(new StatReturn(convertExpr(ret.getValue())));
+            SSAExpression expr = convertExpr(ret.getValue());
+            Type ty = typecheckExpr(expr);
+            if(ty!=currSig.ret())
+                expr = new ExprCast(currSig.ret(),expr);
+            currBB.stats.add(new StatReturn(expr));
         }else if(stat instanceof StatementBlock block){
             for (Statement s : block.getBlock().getStatements()){
                 convertStatement(s);
@@ -298,6 +303,8 @@ public class SSAConverter {
             currBB.localNames.put(param.getName(),localName);
             params.add(param.getType());
         }
+
+        this.currSig = new MethodSignature(method.returnType(),params);
 
         for(var stat : method.getBlock().getStatements())
             convertStatement(stat);
