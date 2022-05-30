@@ -55,4 +55,8 @@ public class ExprCall extends SSAExpression {
         return Objects.hash(name, params, callSig);
     }
 
+    @Override
+    public boolean hasSideEffects() {
+        return true;
+    }
 }

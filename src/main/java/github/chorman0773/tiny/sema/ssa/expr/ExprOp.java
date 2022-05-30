@@ -52,4 +52,8 @@ public class ExprOp extends SSAExpression {
         else
             return false;
     }
+
+    public boolean hasSideEffects(){
+        return this.left.hasSideEffects()||this.right.hasSideEffects();
+    }
 }

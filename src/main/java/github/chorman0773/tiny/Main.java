@@ -71,11 +71,11 @@ public class Main {
                     }
                     String[] opts = iter.next().split(",");
                     Arrays.sort(opts);
-                    optFilter = Functional.or(optFilter,s->Arrays.binarySearch(opts,s)!=-1);
+                    optFilter = Functional.or(optFilter,s->Arrays.binarySearch(opts,s)>=0);
                 }else if(arg.startsWith("--run-opts=")){
                     String rest = arg.substring(11);
                     String[] opts = rest.split(",");
-                    optFilter = Functional.or(optFilter,s->Arrays.binarySearch(opts,s)!=-1);
+                    optFilter = Functional.or(optFilter,s->Arrays.binarySearch(opts,s)>=0);
                 }else if(arg.equals("--codegen")){
                     if(!iter.hasNext()) {
                         System.err.println("--codegen needs an argument");

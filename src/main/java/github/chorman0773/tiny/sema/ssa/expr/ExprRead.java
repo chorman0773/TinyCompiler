@@ -37,4 +37,8 @@ public class ExprRead extends SSAExpression {
         return Objects.hash(path, ty);
     }
 
+    public boolean hasSideEffects(SSAExpression other){
+        return false;
+    }
+
 }

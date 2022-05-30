@@ -45,4 +45,8 @@ public class ExprCast extends SSAExpression {
         else
             return false;
     }
+
+    public boolean hasSideEffects(){
+        return cast.hasSideEffects();
+    }
 }
