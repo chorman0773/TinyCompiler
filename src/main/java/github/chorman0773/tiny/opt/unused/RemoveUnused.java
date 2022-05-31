@@ -60,7 +60,8 @@ public class RemoveUnused implements Optimizer {
                             if(dec.getInitializer().hasSideEffects())
                                 newStats.add(new StatDiscard(dec.getInitializer()));
                             changed = true;
-                        }
+                        }else
+                            newStats.add(stat);
                     }else if(stat instanceof StatBranchCompare cmp){
                         Map<Integer,Integer> newRemaps = new HashMap<>();
                         for(var remap : cmp.getRemaps().entrySet()){
