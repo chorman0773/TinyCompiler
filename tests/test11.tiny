@@ -1,0 +1,8 @@
+/** compile-pass no-run **/
+INT foo() BEGIN
+    INT x := 10;
+    DO
+        x := x - 1;
+    WHILE(x!=0);
+    RETURN 0;
+END

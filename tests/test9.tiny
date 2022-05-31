@@ -1,0 +1,9 @@
+/** compile-pass run-pass **/
+
+INT MAIN foo() BEGIN
+    INT x := 10;
+    WHILE(x!=0) BEGIN
+        x := x - 1;
+    END
+    WRITE(x,"test-stdout");
+END

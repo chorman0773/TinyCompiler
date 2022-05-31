@@ -10,4 +10,11 @@ public enum BooleanOp {
             case CmpNe -> "!=";
         };
     }
+
+    public BooleanOp invert(){
+        return switch(this){
+            case CmpEq -> CmpNe;
+            case CmpNe -> CmpEq;
+        };
+    }
 }

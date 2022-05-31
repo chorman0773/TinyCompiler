@@ -35,6 +35,7 @@ public class JavaMethodCodegen {
     }
 
     private int tinyLocalToReal(int local){
+        System.err.println("Mapping tiny local: "+local);
         return localToReal.get(local);
     }
 

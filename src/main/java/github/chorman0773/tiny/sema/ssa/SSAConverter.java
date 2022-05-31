@@ -169,8 +169,7 @@ public class SSAConverter {
             localNames.add(name);
             var expr = decl.getInitializer();
             if(expr.isPresent()){
-                int newLoc = nextLocal;
-                nextLocal+=2;
+                int newLoc = nextLocal++;
                 currBB.locals.put(newLoc,ty);
 
                 SSAExpression init = convertExpr(expr.get());
@@ -181,6 +180,7 @@ public class SSAConverter {
                 }
 
                 currBB.stats.add(new StatDeclaration(ty,newLoc,init));
+                currBB.localNames.put(name,newLoc);
             }
         }else if(stat instanceof StatementRead read){
             String id = read.getIdent();
@@ -242,23 +242,24 @@ public class SSAConverter {
                 thenBB.localNames.put(name,localName);
             }
             lastBB.stats.add(new StatBranchCompare(thenBB.num,ctrl.getOperator(),left,right,localMap));
+            lastBB.next = thenBB.num;
             currBB = thenBB;
             convertStatement(then);
 
-            if(orelse.isPresent()){
+            if(orelse.isPresent()) {
                 BasicBlockBuilder elseBB = new BasicBlockBuilder(nextBlock++);
-                lastBB.next = elseBB.num;
+                currBB.next = elseBB.num;
                 localMap = new HashMap<>();
-                for(String name : this.localNames){
-                    if(!lastBB.localNames.containsKey(name))
+                for (String name : this.localNames) {
+                    if (!lastBB.localNames.containsKey(name))
                         continue;
                     int localName = nextLocal++;
-                    elseBB.locals.put(localName,this.localTypes.get(name));
-                    localMap.put(lastBB.localNames.get(name),localName);
-                    elseBB.localNames.put(name,localName);
+                    elseBB.locals.put(localName, this.localTypes.get(name));
+                    localMap.put(lastBB.localNames.get(name), localName);
+                    elseBB.localNames.put(name, localName);
                 }
                 currBB = elseBB;
-                lastBB.stats.add(new StatBranch(elseBB.num,localMap));
+                lastBB.stats.add(new StatBranch(elseBB.num, localMap));
                 this.basicBlocks.add(lastBB.build());
                 lastBB = elseBB;
                 convertStatement(orelse.get());
@@ -283,11 +284,111 @@ public class SSAConverter {
                     thenBB.stats.add(new StatBranch(nextBB.num,thenLocalMap));
                 if(!elseHasTerm)
                     lastBB.stats.add(new StatBranch(nextBB.num, localMap));
+                currBB.next = nextBB.num;
                 currBB = nextBB;
             }
+            this.basicBlocks.add(thenBB.build());
             if(!elseHasTerm)
                 this.basicBlocks.add(lastBB.build());
-            this.basicBlocks.add(thenBB.build());
+        }else if(stat instanceof StatementWhile while_){
+            BasicBlockBuilder loopBB = new BasicBlockBuilder(nextBlock++);
+            Map<Integer,Integer> intoLoopMap = new HashMap<>();
+            Map<Integer,Integer> repeatLoopMap = new HashMap<>();
+            Map<Integer,Integer> exitLoopMap = new HashMap<>();
+            Map<String,Integer> atStartNames = new HashMap<>();
+            for(String name : this.localNames){
+                if(!currBB.localNames.containsKey(name))
+                    continue;
+                int localName = nextLocal++;
+                loopBB.locals.put(localName,this.localTypes.get(name));
+                intoLoopMap.put(currBB.localNames.get(name),localName);
+                atStartNames.put(name,localName);
+                loopBB.localNames.put(name,localName);
+            }
+
+            currBB.next = loopBB.num;
+
+            BooleanExpr ctrl = while_.getControl();
+            currBB.stats.add(new StatBranch(loopBB.num,intoLoopMap));
+            BasicBlockBuilder lastBB = currBB;
+            this.basicBlocks.add(lastBB.build());
+            currBB = loopBB;
+            SSAExpression left = convertExpr(ctrl.getLeft());
+            SSAExpression right = convertExpr(ctrl.getRight());
+            loopBB.stats.add(new StatNop()); // placeholder
+            convertStatement(while_.getLooped());
+            BasicBlockBuilder nextBB = new BasicBlockBuilder(nextBlock++);
+            for(String name : this.localNames){
+                if(!loopBB.localNames.containsKey(name))
+                    continue;
+                int localName = nextLocal++;
+                nextBB.locals.put(localName,this.localTypes.get(name));
+                exitLoopMap.put(atStartNames.get(name),localName);
+                nextBB.localNames.put(name,localName);
+            }
+            loopBB.stats.set(0,new StatBranchCompare(nextBB.num,ctrl.getOperator().invert(),left,right,exitLoopMap));
+            for(String name : this.localNames){
+                if(!currBB.localNames.containsKey(name)||!atStartNames.containsKey(name))
+                    continue;
+                int localName = atStartNames.get(name);
+                loopBB.locals.put(localName,this.localTypes.get(name));
+                repeatLoopMap.put(currBB.localNames.get(name),localName);
+            }
+            currBB.stats.add(new StatBranch(loopBB.num,repeatLoopMap));
+            currBB.next = nextBB.num;
+            this.basicBlocks.add(currBB.build());
+            currBB = nextBB;
+        }else if(stat instanceof StatementDoWhile dowhile){
+            BasicBlockBuilder loopBB = new BasicBlockBuilder(nextBlock++);
+            Map<Integer,Integer> intoLoopMap = new HashMap<>();
+            Map<Integer,Integer> repeatLoopMap = new HashMap<>();
+            Map<Integer,Integer> exitLoopMap = new HashMap<>();
+            Map<String,Integer> atStartNames = new HashMap<>();
+            for(String name : this.localNames){
+                if(!currBB.localNames.containsKey(name))
+                    continue;
+                int localName = nextLocal++;
+                loopBB.locals.put(localName,this.localTypes.get(name));
+                intoLoopMap.put(currBB.localNames.get(name),localName);
+                atStartNames.put(name,localName);
+                loopBB.localNames.put(name,localName);
+            }
+
+            currBB.next = loopBB.num;
+
+            BooleanExpr ctrl = dowhile.getControl();
+            currBB.stats.add(new StatBranch(loopBB.num,intoLoopMap));
+            BasicBlockBuilder lastBB = currBB;
+            this.basicBlocks.add(lastBB.build());
+            currBB = loopBB;
+
+            convertStatement(dowhile.getLooped());
+
+            for(String name : this.localNames){
+                if(!currBB.localNames.containsKey(name)||!atStartNames.containsKey(name))
+                    continue;
+                int localName = atStartNames.get(name);
+                loopBB.locals.put(localName,this.localTypes.get(name));
+                repeatLoopMap.put(currBB.localNames.get(name),localName);
+            }
+            SSAExpression left = convertExpr(ctrl.getLeft());
+            SSAExpression right = convertExpr(ctrl.getRight());
+            if(!currBB.hasTerminator()){
+                BasicBlockBuilder nextBB = new BasicBlockBuilder(nextBlock++);
+                for(String name : this.localNames) {
+                    if (!loopBB.localNames.containsKey(name))
+                        continue;
+                    int localName = nextLocal++;
+                    nextBB.locals.put(localName, this.localTypes.get(name));
+                    exitLoopMap.put(loopBB.localNames.get(name), localName);
+                    nextBB.localNames.put(name, localName);
+                }
+                currBB.stats.add(new StatBranchCompare(loopBB.num, ctrl.getOperator(),left,right,repeatLoopMap));
+                currBB.stats.add(new StatBranch(nextBB.num,exitLoopMap));
+                currBB.next = nextBB.num;
+                this.basicBlocks.add(currBB.build());
+                currBB = nextBB;
+            }
         }else
             throw new ConversionError("Unrecognized statement "+ stat);
     }

@@ -23,8 +23,9 @@ dotest(){
   dataline=$(echo "$file" | sed "s|tests/test\([0-9]*\)\.tiny|\1|")
   runmode=$(echo "$testline" | sed "s/.*run-\([^[:space:]]*\).*/\1/" | sed "s/.*no-run.*/no/")
   compilemode=$(echo "$testline" | sed "s/.*compile-\([^[:space:]]*\).*/\1/")
-  echo "$file: $testline"
-  ./gradlew run --args="$file" > /dev/null 2>&1
+  args="$(sed "${dataline}q;d" <tests/test-args)"
+  echo "$file:$args $testline"
+  ./gradlew run --args="$args $file" > /dev/null 2>&1
   compile_result=$?
 
   case $compilemode in
@@ -58,7 +59,7 @@ dotest(){
           echo -e "\033[0;32mPASS\033[0m $file"
         ;;
       pass | fail )
-        input_data="$(cat tests/input-data | sed "${dataline}q;d")"
+        input_data="$(sed "${dataline}q;d" <tests/input-data)"
         if [ "$input_data" == "" ]
         then
           java -cp ".:$stdlib" "$compile_output" > /dev/null 2>&1

@@ -1,0 +1,10 @@
+/** compile-pass no-run **/
+INT foo() BEGIN
+    INT x := 10;
+    WHILE(x!=0) BEGIN
+        INT y := x/2;
+
+        IF (y == 1) x:=0; ELSE x:= x-1;
+    END
+    RETURN 0;
+END

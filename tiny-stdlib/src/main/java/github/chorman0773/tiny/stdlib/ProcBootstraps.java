@@ -11,7 +11,7 @@ public class ProcBootstraps {
 
 
     public static CallSite exit(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException {
-        return new ConstantCallSite(syslookup.findStatic(java.lang.System.class,"exit",desc));
+        return new ConstantCallSite(syslookup.findStatic(Cleanup.class,"exit",desc));
     }
 
     public static CallSite main(MethodHandles.Lookup lookup, String name, MethodType desc) throws NoSuchMethodException, IllegalAccessException {

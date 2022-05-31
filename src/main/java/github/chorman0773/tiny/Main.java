@@ -57,6 +57,7 @@ public class Main {
         String outputVersion = null;
         String outputFile = null;
         CompilationStage stage = CompilationStage.Codegen;
+        EnumSet<ExtensionsState.Extension> exts = ExtensionsState.defaultExtensions();
         while(iter.hasNext()){
             String arg = iter.next();
             if(arg.startsWith("--")){
@@ -71,11 +72,11 @@ public class Main {
                     }
                     String[] opts = iter.next().split(",");
                     Arrays.sort(opts);
-                    optFilter = Functional.or(optFilter,s->Arrays.binarySearch(opts,s)>=0);
+                    optFilter = Functional.or(optFilter,s->Arrays.binarySearch(opts,s)>=0||Arrays.binarySearch(opts,"all")>=0);
                 }else if(arg.startsWith("--run-opts=")){
                     String rest = arg.substring(11);
                     String[] opts = rest.split(",");
-                    optFilter = Functional.or(optFilter,s->Arrays.binarySearch(opts,s)>=0);
+                    optFilter = Functional.or(optFilter,s->Arrays.binarySearch(opts,s)>=0||Arrays.binarySearch(opts,"all")>=0);
                 }else if(arg.equals("--codegen")){
                     if(!iter.hasNext()) {
                         System.err.println("--codegen needs an argument");
@@ -130,6 +131,36 @@ public class Main {
                             System.exit(1);
                         }
                     }
+                }else if(arg.equals("--extension")){
+                    if(!iter.hasNext()) {
+                        System.err.println("--extensions needs an argument");
+                        System.exit(1);
+                    }
+                    String rawExts = iter.next();
+                    for(String rawExt : rawExts.split(",")){
+                        var ext = ExtensionsState.Extension.fromId(rawExt);
+
+                        if(ext.isEmpty()){
+                            System.err.println("Unrecognized Extension "+rawExt);
+                            System.exit(1);
+                        }
+                        exts.add(ext.get());
+                    }
+                }else if(arg.startsWith("--extension=")){
+                    String rawExts = arg.substring(12);
+                    for(String rawExt : rawExts.split(",")){
+                        var ext = ExtensionsState.Extension.fromId(rawExt);
+
+                        if(ext.isEmpty()){
+                            System.err.println("Unrecognized Extension "+rawExt);
+                            System.exit(1);
+                        }
+                        exts.add(ext.get());
+                    }
+                }else if(arg.equals("--no-exts")||arg.equals("--no-extensions")){
+                    exts.clear();
+                }else if(arg.equals("--all-exts")||arg.equals("--all-extensions")){
+                    exts = EnumSet.allOf(ExtensionsState.Extension.class);
                 }else{
                     System.out.println(USAGE);
                     System.exit(1);
@@ -163,8 +194,10 @@ public class Main {
             System.exit(1);
         }
 
+        ExtensionsState extensions = new ExtensionsState(exts);
+
         try(var in = new BufferedInputStream(file.equals("-")?System.in:new FileInputStream(file))){
-            TinyLexer lex = new TinyLexer(file,in);
+            TinyLexer lex = new TinyLexer(file,in,extensions);
             List<Symbol> toks = new ArrayList<>();
 
             Symbol sym;
@@ -178,7 +211,7 @@ public class Main {
                 }
                 toks.add(sym);
             }
-            Program prg = ProgramParser.parseProgram(new Peek<>(toks.iterator()));
+            Program prg = ProgramParser.parseProgram(new Peek<>(toks.iterator()),extensions);
 
             if(stage.compareTo(CompilationStage.Mir)>=0){
                 SSAConverter conv = new SSAConverter();

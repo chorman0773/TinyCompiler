@@ -1,5 +1,6 @@
 package github.chorman0773.tiny.lex;
 
+import github.chorman0773.tiny.ExtensionsState;
 import github.chorman0773.tiny.util.Peek;
 
 import java.io.*;
@@ -12,15 +13,17 @@ public class TinyLexer {
     private Peek<Integer> it;
     private int col;
     private int line;
+    private ExtensionsState exts;
 
 
-    public TinyLexer(String fname,InputStream in){
-        this(fname,new InputStreamReader(in));
+    public TinyLexer(String fname,InputStream in,ExtensionsState exts){
+        this(fname,new InputStreamReader(in),exts);
     }
 
-    public TinyLexer(String fname,Reader r){
+    public TinyLexer(String fname,Reader r,ExtensionsState exts){
         it = new Peek<>(new CodePointIterator(new ReadIterator(new BufferedReader(r))));
         this.filename = fname;
+        this.exts = exts;
     }
 
     private Optional<Symbol> lexComment(int lineStart, int colStart){
@@ -106,7 +109,7 @@ public class TinyLexer {
         int lineStart = line;
         int colStart = col;
         col++;
-        if(Character.isUnicodeIdentifierStart(c)){
+        if(exts.isIdentifierStart(c)){
             StringBuilder id = new StringBuilder();
             id.appendCodePoint(c);
 
@@ -115,19 +118,15 @@ public class TinyLexer {
                 if (tok.isEmpty())
                     break;
                 c =tok.get();
-                if(Character.isUnicodeIdentifierPart(c)){
+                if(exts.isIdentifierPart(c)){
                     col++;
                     id.appendCodePoint(c);
                     it.next();
                 }
-            }while(Character.isUnicodeIdentifierPart(c));
+            }while(exts.isIdentifierPart(c));
             String ident = id.toString();
             Span s = new Span(this.filename,lineStart,colStart,line,col);
-            TinySym kind = switch(ident){
-                case "INT", "REAL", "STRING", "MAIN", "READ", "WRITE", "BEGIN", "END", "IF", "ELSE", "RETURN" -> TinySym.Keyword;
-                default -> TinySym.Identifier;
-            };
-
+            TinySym kind = exts.isKeyword(ident)?TinySym.Keyword:TinySym.Identifier;
             return new Symbol(kind,ident,s);
         }else if(Character.isDigit(c)) {
             StringBuilder num = new StringBuilder();

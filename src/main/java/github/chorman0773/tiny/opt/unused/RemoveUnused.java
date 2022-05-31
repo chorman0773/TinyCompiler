@@ -25,7 +25,7 @@ public class RemoveUnused implements Optimizer {
                 getUsedLocals(arg,usedLocals);
     }
 
-    private void getUsedLocals(SSAStatement stat, Set<Integer> usedLocals){
+    private void getUsedLocals(SSAStatement stat, Set<Integer> usedLocals,int currBBNo){
         if(stat instanceof StatReturn ret)
             getUsedLocals(ret.getExpr(),usedLocals);
         else if(stat instanceof StatDeclaration decl)
@@ -35,9 +35,22 @@ public class RemoveUnused implements Optimizer {
         else if(stat instanceof StatBranchCompare cmp){
             getUsedLocals(cmp.getLeft(),usedLocals);
             getUsedLocals(cmp.getRight(),usedLocals);
-            usedLocals.addAll(cmp.getRemaps().keySet());
-        }else if(stat instanceof StatBranch branch)
-            usedLocals.addAll(branch.getRemaps().keySet());
+            if(cmp.getTargetNumber()<=currBBNo){
+                for(var remap : cmp.getRemaps().entrySet()){
+                    if(usedLocals.contains(remap.getValue()))
+                        usedLocals.add(remap.getKey());
+                }
+            }else
+                usedLocals.addAll(cmp.getRemaps().keySet());
+        }else if(stat instanceof StatBranch branch){
+            if(branch.getTargetNumber()<=currBBNo){
+                for(var remap : branch.getRemaps().entrySet()){
+                    if(usedLocals.contains(remap.getValue()))
+                        usedLocals.add(remap.getKey());
+                }
+            }else
+                usedLocals.addAll(branch.getRemaps().keySet());
+        }
         else if(stat instanceof StatDiscard disc)
             getUsedLocals(disc.inner(),usedLocals);
     }
@@ -49,7 +62,7 @@ public class RemoveUnused implements Optimizer {
             Set<Integer> usedLocals = new HashSet<>();
             for(BasicBlock bb :  blocks){
                 for(SSAStatement stat : bb.getStats())
-                    getUsedLocals(stat,usedLocals);
+                    getUsedLocals(stat,usedLocals,bb.getNum());
             }
             List<BasicBlock> newBlocks = new ArrayList<>();
             for(BasicBlock bb :  blocks){
@@ -82,6 +95,9 @@ public class RemoveUnused implements Optimizer {
                         }
 
                         newStats.add(new StatBranch(br.getTargetNumber(),newRemaps));
+                    }else if(stat instanceof StatStoreDead dead){
+                        if(usedLocals.contains(dead.getLocalNumber()))
+                            newStats.add(stat);
                     }else
                         newStats.add(stat);
                 }

@@ -1,5 +1,6 @@
 package github.chorman0773.tiny.parse;
 
+import github.chorman0773.tiny.ExtensionsState;
 import github.chorman0773.tiny.ast.*;
 import github.chorman0773.tiny.lex.Span;
 import github.chorman0773.tiny.lex.Symbol;
@@ -11,15 +12,15 @@ import java.util.*;
 
 public class ProgramParser {
 
-    public static Program parseProgram(Peek<Symbol> it) throws SyntaxError{
+    public static Program parseProgram(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
         List<MethodDeclaration> decls = new ArrayList<>();
         while(it.hasNext())
-            decls.add(parseMethodDeclaration(it));
+            decls.add(parseMethodDeclaration(it, exts));
         return new Program(decls);
     }
 
-    public static MethodDeclaration parseMethodDeclaration(Peek<Symbol> it) throws SyntaxError{
-        Type ty = parseType(it);
+    public static MethodDeclaration parseMethodDeclaration(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
+        Type ty = parseType(it,exts);
 
         Symbol sym = it.peek().orElseThrow(()->new SyntaxError("Unexpected End of File"));
 
@@ -39,7 +40,7 @@ public class ProgramParser {
 
         List<Parameter> parameters = new ArrayList<>();
         while(peek.hasNext()){
-            Type paramTy = parseType(peek);
+            Type paramTy = parseType(peek, exts);
             String paramName = getNextToken(peek,TinySym.Identifier);
             parameters.add(new Parameter(paramTy,paramName));
             if(!peek.hasNext())
@@ -49,12 +50,12 @@ public class ProgramParser {
                 throw new SyntaxError("Unexpected end of input");
         }
 
-        Block block = parseBlock(it);
+        Block block = parseBlock(it,exts);
 
         return new MethodDeclaration(isMain,ty,name,parameters,block);
     }
 
-    public static Block parseBlock(Peek<Symbol> it) throws SyntaxError{
+    public static Block parseBlock(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
         checkNextToken(it,TinySym.Keyword,"BEGIN");
         List<Statement> stats = new ArrayList<>();
         while(true){
@@ -65,7 +66,7 @@ public class ProgramParser {
                 break;
             }
             else
-                stats.add(parseStatement(it));
+                stats.add(parseStatement(it,exts));
         }
         return new Block(stats);
     }
@@ -79,6 +80,11 @@ public class ProgramParser {
         }
     }
 
+    public static Peek<Symbol> getNextGroup(Peek<Symbol> it) throws SyntaxError{
+        List<Symbol> group = getNextToken(it,TinySym.ParenGroup);
+        return new Peek<>(group.iterator());
+    }
+
     public static <S> void checkNextToken(Peek<Symbol> it,TinySym kind,S value) throws SyntaxError {
         if(!it.hasNext())
             throw new SyntaxError("Unexpected EOF");
@@ -89,7 +95,7 @@ public class ProgramParser {
         }
     }
 
-    public static Statement parseStatement(Peek<Symbol> it) throws SyntaxError{
+    public static Statement parseStatement(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
         Symbol sym = it.peek().orElseThrow(() -> new SyntaxError("Unexpected EOF"));
 
         Optional<String> kw = sym.checkValue(TinySym.Keyword);
@@ -100,28 +106,28 @@ public class ProgramParser {
                     it.next();
                     List<Symbol> syms = it.optNext().flatMap(s->s.<List<Symbol>>checkValue(TinySym.ParenGroup)).orElseThrow(()->new SyntaxError("Unexpected End of File"));
                     Peek<Symbol> controlPeek = new Peek<>(syms.iterator());
-                    BooleanExpr control = parseBooleanExpr(controlPeek);
+                    BooleanExpr control = parseBooleanExpr(controlPeek, exts);
                     if(controlPeek.hasNext())
                         throw new SyntaxError("Unexpected leftover tokens " + controlPeek.next());
-                    Statement then = parseStatement(it);
+                    Statement then = parseStatement(it,exts);
                     Optional<String> next = it.peek().flatMap(s->s.checkValue(TinySym.Keyword));
                     Statement orelse = null;
                     if(next.equals(Optional.of("ELSE"))){
                         it.next();
-                        orelse = parseStatement(it);
+                        orelse = parseStatement(it,exts);
                     }
                     yield new StatementIf(control,then,orelse);
                 }
                 case "RETURN" -> {
                     it.next();
-                    yield new StatementReturn(parseExpr(it));
+                    yield new StatementReturn(parseExpr(it,exts));
                 }
-                case "BEGIN" -> new StatementBlock(parseBlock(it));
+                case "BEGIN" -> new StatementBlock(parseBlock(it,exts));
                 case "WRITE" -> {
                     it.next();
-                    Peek<Symbol> syms = it.optNext().flatMap(s->s.<List<Symbol>>checkValue(TinySym.ParenGroup)).map(List::iterator).map(Peek::new).orElseThrow(() -> new SyntaxError("Unexpected Token"));
+                    Peek<Symbol> syms = getNextGroup(it);
 
-                    Expression expr = parseExpr(syms);
+                    Expression expr = parseExpr(syms,exts);
 
                     checkNextToken(syms,TinySym.Sigil,",");
 
@@ -131,7 +137,7 @@ public class ProgramParser {
                 }
                 case "READ" -> {
                     it.next();
-                    Peek<Symbol> syms = it.optNext().flatMap(s->s.<List<Symbol>>checkValue(TinySym.ParenGroup)).map(List::iterator).map(Peek::new).orElseThrow(() -> new SyntaxError("Unexpected Token"));
+                    Peek<Symbol> syms = getNextGroup(it);
 
                     String id = syms.optNext().flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
 
@@ -141,14 +147,45 @@ public class ProgramParser {
                     String path = qpath.substring(1,qpath.length()-1);
                     yield new StatementRead(id,path);
                 }
+                case "WHILE" -> {
+                    it.next();
+                    assert exts.hasExtension(ExtensionsState.Extension.While) : "ICE: Got WHILE keyword but While extension is disabled";
+
+                    var syms = getNextGroup(it);
+
+                    BooleanExpr expr = parseBooleanExpr(syms,exts);
+
+                    if(syms.hasNext())
+                        throw new SyntaxError("Unexpected token "+syms.next());
+
+                    Statement next = parseStatement(it,exts);
+                    yield new StatementWhile(expr,next);
+                }
+                case "DO" -> {
+                    it.next();
+                    assert exts.hasExtension(ExtensionsState.Extension.While) : "ICE: Got WHILE keyword but While extension is disabled";
+
+                    Statement next = parseStatement(it,exts);
+
+                    checkNextToken(it,TinySym.Keyword,"WHILE");
+
+                    var syms = getNextGroup(it);
+
+                    BooleanExpr expr = parseBooleanExpr(syms,exts);
+
+                    if(syms.hasNext())
+                        throw new SyntaxError("Unexpected token "+syms.next());
+
+                    yield new StatementDoWhile(expr,next);
+                }
                 default -> {
-                    Type ty = parseType(it);
+                    Type ty = parseType(it, exts);
                     Optional<Symbol> tok = it.optNext();
                     String id = tok.flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
                     Expression init = null;
                     if(it.peek().flatMap(s->s.<String>checkValue(TinySym.Sigil)).equals(Optional.of(":="))){
                         it.next();
-                        init = parseExpr(it);
+                        init = parseExpr(it,exts);
                     }
                     yield new StatementDeclaration(ty,new Identifier(id,tok.get().getSpan()),init);
                 }
@@ -157,7 +194,7 @@ public class ProgramParser {
             Optional<Symbol> tok = it.optNext();
             String id = tok.flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
             checkNextToken(it,TinySym.Sigil,":=");
-            Expression init = parseExpr(it);
+            Expression init = parseExpr(it,exts);
             stat = new StatementAssignment(new Identifier(id,tok.get().getSpan()),init);
         }
 
@@ -167,20 +204,20 @@ public class ProgramParser {
         return stat;
     }
 
-    public static BooleanExpr parseBooleanExpr(Peek<Symbol> it) throws SyntaxError {
-        Expression left = parseExpr(it);
+    public static BooleanExpr parseBooleanExpr(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError {
+        Expression left = parseExpr(it,exts);
         BooleanOp op = switch(it.optNext().flatMap(sym->sym.<String>checkValue(TinySym.Sigil)).orElseThrow(() -> new SyntaxError("Unexpected Token"))){
             case "==" -> BooleanOp.CmpEq;
             case "!=" -> BooleanOp.CmpNe;
             default -> {throw new SyntaxError("Unexpected Token");}
         };
-        Expression right = parseExpr(it);
+        Expression right = parseExpr(it,exts);
 
         return new BooleanExpr(op,left,right);
     }
 
-    public static Expression parseExpr(Peek<Symbol> it) throws SyntaxError{
-        return parseBinaryExpr(it,0);
+    public static Expression parseExpr(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
+        return parseBinaryExpr(it,0,exts);
     }
 
     private static final Map<String,OperatorTuple> OPERATORS = new HashMap<>(){{
@@ -190,8 +227,8 @@ public class ProgramParser {
         put("/",new OperatorTuple(BinaryOp.Div, 3, 4));
     }};
 
-    public static Expression parseBinaryExpr(Peek<Symbol> it, int precedence) throws SyntaxError{
-        Expression left = parseSimpleExpr(it);
+    public static Expression parseBinaryExpr(Peek<Symbol> it, int precedence, ExtensionsState exts) throws SyntaxError{
+        Expression left = parseSimpleExpr(it,exts);
         while(it.hasNext()){
             Symbol peeked = it.peek().orElseThrow();
             Optional<OperatorTuple> peekedOp = peeked.<String>checkValue(TinySym.Sigil)
@@ -204,7 +241,7 @@ public class ProgramParser {
             if(op.lbp()<precedence)
                 break;
             it.next();
-            Expression right = parseBinaryExpr(it,op.rbp());
+            Expression right = parseBinaryExpr(it,op.rbp(),exts);
             left = new ExpressionBinary(op.op(),left,right);
         }
 
@@ -212,7 +249,7 @@ public class ProgramParser {
     }
 
     @SuppressWarnings("unchecked")
-    public static Expression parseSimpleExpr(Peek<Symbol> it) throws SyntaxError{
+    public static Expression parseSimpleExpr(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
         if(!it.hasNext())
             throw new SyntaxError("Unexpected End of File");
         Symbol sym = it.next();
@@ -229,7 +266,7 @@ public class ProgramParser {
                     List<Expression> args = new ArrayList<>();
                     Peek<Symbol> inner = new Peek<>(paramToks.iterator());
                     while(inner.hasNext()){
-                        args.add(parseExpr(inner));
+                        args.add(parseExpr(inner,exts));
                         if(!inner.hasNext())
                             break;
                         Symbol comma = inner.next();
@@ -245,7 +282,7 @@ public class ProgramParser {
             case ParenGroup ->  {
                 Peek<Symbol> inner = new Peek<>(((List<Symbol>)sym.getValue()).iterator());
 
-                Expression expr = parseExpr(inner);
+                Expression expr = parseExpr(inner,exts);
                 if(inner.hasNext())
                     throw new SyntaxError("Unexpected leftover tokens " + inner.next());
                 yield new ParenExpr(expr);
@@ -255,7 +292,7 @@ public class ProgramParser {
         };
     }
 
-    public static Type parseType(Peek<Symbol> it) throws SyntaxError{
+    public static Type parseType(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
         if(!it.hasNext())
             throw new SyntaxError("Unexpected End of File");
         Symbol ty = it.next();
