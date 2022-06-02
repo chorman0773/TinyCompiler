@@ -1,0 +1,5 @@
+/** compile-pass no-run **/
+
+INT min(INT x, INT y) BEGIN
+    IF (x<y) RETURN x; ELSE RETURN y;
+END

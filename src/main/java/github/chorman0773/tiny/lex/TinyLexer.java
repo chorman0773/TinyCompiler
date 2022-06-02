@@ -216,11 +216,11 @@ public class TinyLexer {
                     c = it.next();
                     col++;
                     if(c!='=')
-                        return new Symbol(TinySym.Error, "Expected =, got "+c,new Span(filename,lineStart,colStart,line,col));
+                        return new Symbol(TinySym.Error, "Expected =, got "+Character.toString(c),new Span(filename,lineStart,colStart,line,col));
                     tok += Character.toString(c);
                     return new Symbol(TinySym.Sigil,tok,new Span(filename,lineStart,colStart,line,col));
                 }
-                case '=' -> {
+                case '=','<','>' -> {
                     String tok = Character.toString(c);
                     var nc = it.peek();
 

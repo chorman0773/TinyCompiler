@@ -102,6 +102,18 @@ public class ConstantFolder implements Optimizer {
                     else
                         return new StatBranchCompare(bcmp.getTargetNumber(), bcmp.getOp(), left.expression(), right.expression(), bcmp.getRemaps());
                 }
+                case CmpLe, CmpGe -> {
+                    if (definatelyEquals)
+                        return new StatBranch(bcmp.getTargetNumber(), bcmp.getRemaps());
+                    else
+                        return new StatBranchCompare(bcmp.getTargetNumber(), bcmp.getOp(), left.expression(), right.expression(), bcmp.getRemaps());
+                }
+                case CmpLt, CmpGt -> {
+                    if (definatelyEquals)
+                        return new StatNop();
+                    else
+                        return new StatBranchCompare(bcmp.getTargetNumber(), bcmp.getOp(), left.expression(), right.expression(), bcmp.getRemaps());
+                }
             }
         }else if(stat instanceof StatReturn ret)
             return new StatReturn(convertExpr(ret.getExpr()).expression());

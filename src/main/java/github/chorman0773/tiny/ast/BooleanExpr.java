@@ -1,17 +1,17 @@
 package github.chorman0773.tiny.ast;
 
 public class BooleanExpr {
-    private final BooleanOp op;
+    private final CompareOp op;
     private final Expression left;
     private final Expression right;
 
-    public BooleanExpr(BooleanOp op, Expression left, Expression right){
+    public BooleanExpr(CompareOp op, Expression left, Expression right){
         this.op = op;
         this.left = left;
         this.right = right;
     }
 
-    public BooleanOp getOperator(){
+    public CompareOp getOperator(){
         return op;
     }
 

@@ -14,6 +14,6 @@ public class StatDiscard extends SSAStatement{
     }
 
     public String toString(){
-        return "discard("+expr+")";
+        return "discard "+expr;
     }
 }

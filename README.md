@@ -48,8 +48,8 @@ In Lowering, the following transformations are applied:
 * Declarations with initializers and assignment statements are lowered into SSA Declarations, and 
  in the case of reassignment, StoreDead annotations.
 * READ statements are desugared into an assignment from a `Read` expression, then lowered as an assignment statement would.
-* BLOCK statements are expanded into the component statements (FIXME: Local variables first declared within blocks need to be `StoreDead`ed at the end of the block)
-* IF statements and IF-ELSE statements are expanded into comparing branches and unconditional branches (FIXME: Local variables first declared within both ARMs of an IF need to be `StoreDead`ed at the end of the block)
+* BLOCK statements are expanded into the component statements 
+* IF statements and IF-ELSE statements are expanded into comparing branches and unconditional branches 
 * RETURN and WRITE statements are preserved
 
 The Semantic Analyzer is in the package `github.chorman0773.tiny.sema`.
@@ -102,14 +102,13 @@ Optimizations can be found in the `github.chorman0773.tiny.opt` package,
 and the two implemented ones in `github.chorman0773.tiny.opt.inline` and `github.chorman0773.tiny.opt.fold`.
 
 
-
 ## Planned Features
 
 - [x] Rewrite of Lexer - If you want something done right, gotta do it yourself
 - [ ] Better Diagnostics - As much fun as Throwing an exception on a compiler error is
 - [x] Token Spans - For Diagnostics
 - [ ] Debug Info Generation - So you can decompile Tiny
-- [ ] Semantic Analysis Fixes
+- [x] Semantic Analysis Fixes
 
 ## Planned Extensions
 
@@ -118,8 +117,8 @@ The Tiny Language is minimal, but powerful. Using the above architecture,
 - [x] UAX #31 support (Unicode Identifiers)
 - [ ] String Expressions (including String Literal Expressions)
 - [ ] IO With Computed Paths
-- [ ] WHILE loops.
-- [ ] Additional Comparisons for `IF` and `WHILE` statements
+- [x] WHILE loops.
+- [x] Additional Comparisons for `IF` and `WHILE` statements
 - [ ] Boolean Operators (`||`, `&&`, and `!`)
 - [ ] Additional types
 - [ ] Libraries and importing.

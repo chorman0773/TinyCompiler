@@ -8,14 +8,25 @@ import java.util.Optional;
 public class ExtensionsState {
     public enum Extension{
         Uax31,
-        While;
+        While,
+        CmpRel;
+
 
 
         public static Optional<Extension> fromId(String id){
             return switch(id){
                 case "uax31" -> Optional.of(Uax31);
                 case "while" -> Optional.of(While);
+                case "cmprel" -> Optional.of(CmpRel);
                 default -> Optional.empty();
+            };
+        }
+
+        public String extId(){
+            return switch(this){
+                case Uax31 -> "uax31";
+                case While -> "while";
+                case CmpRel -> "cmprel";
             };
         }
     }
@@ -26,7 +37,7 @@ public class ExtensionsState {
     }
 
     public static EnumSet<Extension> defaultExtensions(){
-        return EnumSet.of(Extension.Uax31);
+        return EnumSet.of(Extension.Uax31,Extension.CmpRel);
     }
 
     public boolean isIdentifierStart(int codep){

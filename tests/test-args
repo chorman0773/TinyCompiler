@@ -9,3 +9,5 @@
 --extension=while
 --extension=while
 --extension=while
+
+--no-extension=cmprel

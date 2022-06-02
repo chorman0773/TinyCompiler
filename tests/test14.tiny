@@ -1,0 +1,8 @@
+/** compile-fail no-run **/
+
+INT f0() BEGIN
+    BEGIN
+        INT x := 0;
+    END
+    RETURN x;
+END

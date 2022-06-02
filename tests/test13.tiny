@@ -1,0 +1,5 @@
+/** compile-fail no-run **/
+
+INT max(INT x, INT y) BEGIN
+    IF (x>y) RETURN x; ELSE RETURN y;
+END

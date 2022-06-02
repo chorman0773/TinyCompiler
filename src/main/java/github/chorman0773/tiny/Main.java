@@ -157,6 +157,32 @@ public class Main {
                         }
                         exts.add(ext.get());
                     }
+                }else if(arg.equals("--no-extension")){
+                    if(!iter.hasNext()) {
+                        System.err.println("--extensions needs an argument");
+                        System.exit(1);
+                    }
+                    String rawExts = iter.next();
+                    for(String rawExt : rawExts.split(",")){
+                        var ext = ExtensionsState.Extension.fromId(rawExt);
+
+                        if(ext.isEmpty()){
+                            System.err.println("Unrecognized Extension "+rawExt);
+                            System.exit(1);
+                        }
+                        exts.remove(ext.get());
+                    }
+                }else if(arg.startsWith("--no-extension=")){
+                    String rawExts = arg.substring(12);
+                    for(String rawExt : rawExts.split(",")){
+                        var ext = ExtensionsState.Extension.fromId(rawExt);
+
+                        if(ext.isEmpty()){
+                            System.err.println("Unrecognized Extension "+rawExt);
+                            System.exit(1);
+                        }
+                        exts.remove(ext.get());
+                    }
                 }else if(arg.equals("--no-exts")||arg.equals("--no-extensions")){
                     exts.clear();
                 }else if(arg.equals("--all-exts")||arg.equals("--all-extensions")){

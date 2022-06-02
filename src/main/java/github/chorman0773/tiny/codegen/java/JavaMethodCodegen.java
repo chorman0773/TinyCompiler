@@ -1,5 +1,6 @@
 package github.chorman0773.tiny.codegen.java;
 
+import github.chorman0773.tiny.ast.CompareOp;
 import github.chorman0773.tiny.ast.Type;
 import github.chorman0773.tiny.sema.ssa.BasicBlock;
 import github.chorman0773.tiny.sema.ssa.MethodSignature;
@@ -283,13 +284,24 @@ public class JavaMethodCodegen {
                     switch(branch.getOp()){
                         case CmpEq -> visit.visitJumpInsn(Opcodes.IF_ICMPEQ,targ);
                         case CmpNe -> visit.visitJumpInsn(Opcodes.IF_ICMPNE,targ);
+                        case CmpLt -> visit.visitJumpInsn(Opcodes.IF_ICMPLT,targ);
+                        case CmpLe -> visit.visitJumpInsn(Opcodes.IF_ICMPLE,targ);
+                        case CmpGt -> visit.visitJumpInsn(Opcodes.IF_ICMPGT,targ);
+                        case CmpGe -> visit.visitJumpInsn(Opcodes.IF_ICMPGE,targ);
                     }
                 }
                 case Real -> {
-                    visit.visitInsn(Opcodes.DCMPL);
+                    if(branch.getOp()== CompareOp.CmpLt || branch.getOp()==CompareOp.CmpLe)
+                        visit.visitInsn(Opcodes.DCMPG);
+                    else
+                        visit.visitInsn(Opcodes.DCMPL);
                     switch(branch.getOp()){
                         case CmpEq -> visit.visitJumpInsn(Opcodes.IFEQ,targ);
                         case CmpNe -> visit.visitJumpInsn(Opcodes.IFNE,targ);
+                        case CmpLt -> visit.visitJumpInsn(Opcodes.IFLT,targ);
+                        case CmpLe -> visit.visitJumpInsn(Opcodes.IFLE,targ);
+                        case CmpGt -> visit.visitJumpInsn(Opcodes.IFGT,targ);
+                        case CmpGe -> visit.visitJumpInsn(Opcodes.IFGE,targ);
                     }
                 }
                 default -> {
@@ -299,6 +311,10 @@ public class JavaMethodCodegen {
                     switch(branch.getOp()){
                         case CmpEq -> visit.visitJumpInsn(Opcodes.IFEQ,targ);
                         case CmpNe -> visit.visitJumpInsn(Opcodes.IFNE,targ);
+                        case CmpLt -> visit.visitJumpInsn(Opcodes.IFLT,targ);
+                        case CmpLe -> visit.visitJumpInsn(Opcodes.IFLE,targ);
+                        case CmpGt -> visit.visitJumpInsn(Opcodes.IFGT,targ);
+                        case CmpGe -> visit.visitJumpInsn(Opcodes.IFGE,targ);
                     }
                 }
             }

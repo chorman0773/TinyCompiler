@@ -50,7 +50,6 @@ public class SSAConverter {
 
     private int nextBlock;
     private int nextLocal;
-    private List<String> localNames;
     private Map<String, Type> localTypes;
     private BasicBlockBuilder currBB;
     private MethodSignature currSig;
@@ -64,7 +63,6 @@ public class SSAConverter {
         this.basicBlocks = new ArrayList<>();
 
         this.nextBlock = 1;
-        this.localNames = new ArrayList<>();
         this.localTypes = new HashMap<>();
         this.currBB = new BasicBlockBuilder(0);
     }
@@ -92,6 +90,8 @@ public class SSAConverter {
 
     public SSAExpression convertExpr(github.chorman0773.tiny.ast.Expression expr){
         if(expr instanceof ExpressionId id){
+            if(!localTypes.containsKey(id.getIdentifier().name()))
+                throw new ConversionError("Attempt to use undefined local "+id.getIdentifier());
             Integer local = currBB.localNames.get(id.getIdentifier().name());
             if(local==null)
                 throw new ConversionError("Attempt to use undefined or uninitialized local "+id.getIdentifier());
@@ -165,8 +165,7 @@ public class SSAConverter {
             String name = decl.getName().name();
 
             if(localTypes.putIfAbsent(name,ty)!=null)
-                throw new ConversionError("Attempt to refine existing local variable "+name);
-            localNames.add(name);
+                throw new ConversionError("Attempt to redefine existing local variable "+name);
             var expr = decl.getInitializer();
             if(expr.isPresent()){
                 int newLoc = nextLocal++;
@@ -204,9 +203,17 @@ public class SSAConverter {
                 expr = new ExprCast(currSig.ret(),expr);
             currBB.stats.add(new StatReturn(expr));
         }else if(stat instanceof StatementBlock block){
+            Map<String,Type> prevNames = new HashMap<>(localTypes);
             for (Statement s : block.getBlock().getStatements()){
                 convertStatement(s);
             }
+            for(String name : localTypes.keySet()){
+                if(prevNames.containsKey(name)||!currBB.localNames.containsKey(name))
+                    continue;
+                int localName = currBB.localNames.get(name);
+                currBB.stats.add(new StatStoreDead(localName));
+            }
+            localTypes = prevNames;
         }else if(stat instanceof StatementIf cond){
             BooleanExpr ctrl = cond.getControl();
 
@@ -233,7 +240,8 @@ public class SSAConverter {
             BasicBlockBuilder thenBB = new BasicBlockBuilder(nextBlock++);
             BasicBlockBuilder lastBB = currBB;
             Map<Integer,Integer> localMap = new HashMap<>();
-            for(String name : this.localNames){
+            Map<String,Type> prevNames = new HashMap<>(localTypes);
+            for(String name : this.localTypes.keySet()){
                 if(!lastBB.localNames.containsKey(name))
                     continue;
                 int localName = nextLocal++;
@@ -247,10 +255,11 @@ public class SSAConverter {
             convertStatement(then);
 
             if(orelse.isPresent()) {
+                this.localTypes = new HashMap<>(prevNames);
                 BasicBlockBuilder elseBB = new BasicBlockBuilder(nextBlock++);
                 currBB.next = elseBB.num;
                 localMap = new HashMap<>();
-                for (String name : this.localNames) {
+                for (String name : this.localTypes.keySet()) {
                     if (!lastBB.localNames.containsKey(name))
                         continue;
                     int localName = nextLocal++;
@@ -271,7 +280,7 @@ public class SSAConverter {
                 BasicBlockBuilder nextBB = new BasicBlockBuilder(nextBlock++);
                 Map<Integer,Integer> thenLocalMap = new HashMap<>();
                 localMap = new HashMap<>();
-                for(String name : this.localNames){
+                for(String name : prevNames.keySet()){
                     if(!thenBB.localNames.containsKey(name)&&lastBB.localNames.containsKey(name))
                         continue;
                     int localName = nextLocal++;
@@ -290,13 +299,15 @@ public class SSAConverter {
             this.basicBlocks.add(thenBB.build());
             if(!elseHasTerm)
                 this.basicBlocks.add(lastBB.build());
+            this.localTypes = prevNames;
         }else if(stat instanceof StatementWhile while_){
             BasicBlockBuilder loopBB = new BasicBlockBuilder(nextBlock++);
             Map<Integer,Integer> intoLoopMap = new HashMap<>();
             Map<Integer,Integer> repeatLoopMap = new HashMap<>();
             Map<Integer,Integer> exitLoopMap = new HashMap<>();
             Map<String,Integer> atStartNames = new HashMap<>();
-            for(String name : this.localNames){
+            Map<String,Type> prevNames = new HashMap<>(localTypes);
+            for(String name : this.localTypes.keySet()){
                 if(!currBB.localNames.containsKey(name))
                     continue;
                 int localName = nextLocal++;
@@ -318,7 +329,7 @@ public class SSAConverter {
             loopBB.stats.add(new StatNop()); // placeholder
             convertStatement(while_.getLooped());
             BasicBlockBuilder nextBB = new BasicBlockBuilder(nextBlock++);
-            for(String name : this.localNames){
+            for(String name : prevNames.keySet()){
                 if(!loopBB.localNames.containsKey(name))
                     continue;
                 int localName = nextLocal++;
@@ -327,7 +338,7 @@ public class SSAConverter {
                 nextBB.localNames.put(name,localName);
             }
             loopBB.stats.set(0,new StatBranchCompare(nextBB.num,ctrl.getOperator().invert(),left,right,exitLoopMap));
-            for(String name : this.localNames){
+            for(String name : prevNames.keySet()){
                 if(!currBB.localNames.containsKey(name)||!atStartNames.containsKey(name))
                     continue;
                 int localName = atStartNames.get(name);
@@ -338,13 +349,15 @@ public class SSAConverter {
             currBB.next = nextBB.num;
             this.basicBlocks.add(currBB.build());
             currBB = nextBB;
+            this.localTypes = prevNames;
         }else if(stat instanceof StatementDoWhile dowhile){
             BasicBlockBuilder loopBB = new BasicBlockBuilder(nextBlock++);
             Map<Integer,Integer> intoLoopMap = new HashMap<>();
             Map<Integer,Integer> repeatLoopMap = new HashMap<>();
             Map<Integer,Integer> exitLoopMap = new HashMap<>();
             Map<String,Integer> atStartNames = new HashMap<>();
-            for(String name : this.localNames){
+            Map<String,Type> prevNames = new HashMap<>(this.localTypes);
+            for(String name : this.localTypes.keySet()){
                 if(!currBB.localNames.containsKey(name))
                     continue;
                 int localName = nextLocal++;
@@ -364,7 +377,7 @@ public class SSAConverter {
 
             convertStatement(dowhile.getLooped());
 
-            for(String name : this.localNames){
+            for(String name : prevNames.keySet()){
                 if(!currBB.localNames.containsKey(name)||!atStartNames.containsKey(name))
                     continue;
                 int localName = atStartNames.get(name);
@@ -375,7 +388,7 @@ public class SSAConverter {
             SSAExpression right = convertExpr(ctrl.getRight());
             if(!currBB.hasTerminator()){
                 BasicBlockBuilder nextBB = new BasicBlockBuilder(nextBlock++);
-                for(String name : this.localNames) {
+                for(String name : prevNames.keySet()) {
                     if (!loopBB.localNames.containsKey(name))
                         continue;
                     int localName = nextLocal++;
@@ -389,6 +402,7 @@ public class SSAConverter {
                 this.basicBlocks.add(currBB.build());
                 currBB = nextBB;
             }
+            this.localTypes = prevNames;
         }else
             throw new ConversionError("Unrecognized statement "+ stat);
     }
@@ -397,7 +411,6 @@ public class SSAConverter {
         List<Type> params = new ArrayList<>();
         nextLocal = 0;
         for(var param : method.getParameters()){
-            this.localNames.add(param.getName());
             this.localTypes.put(param.getName(),param.getType());
             int localName = nextLocal++;
             currBB.locals.put(localName,param.getType());

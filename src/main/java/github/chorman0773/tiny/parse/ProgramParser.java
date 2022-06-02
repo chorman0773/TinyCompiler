@@ -45,7 +45,7 @@ public class ProgramParser {
             parameters.add(new Parameter(paramTy,paramName));
             if(!peek.hasNext())
                 break;
-            checkNextToken(it,TinySym.Sigil,",");
+            checkNextToken(peek,TinySym.Sigil,",");
             if(!peek.hasNext())
                 throw new SyntaxError("Unexpected end of input");
         }
@@ -206,9 +206,30 @@ public class ProgramParser {
 
     public static BooleanExpr parseBooleanExpr(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError {
         Expression left = parseExpr(it,exts);
-        BooleanOp op = switch(it.optNext().flatMap(sym->sym.<String>checkValue(TinySym.Sigil)).orElseThrow(() -> new SyntaxError("Unexpected Token"))){
-            case "==" -> BooleanOp.CmpEq;
-            case "!=" -> BooleanOp.CmpNe;
+        String sig = getNextToken(it,TinySym.Sigil);
+        CompareOp op = switch(sig){
+            case "==" -> CompareOp.CmpEq;
+            case "!=" -> CompareOp.CmpNe;
+            case "<" -> {
+                if(!exts.hasExtension(ExtensionsState.Extension.CmpRel))
+                    throw new SyntaxError("Unexpected Token <. Note: Using relational operators requires `--extension=cmprel`, perhaps it was disabled or not enabled.");
+                yield CompareOp.CmpLt;
+            }
+            case ">" -> {
+                if(!exts.hasExtension(ExtensionsState.Extension.CmpRel))
+                    throw new SyntaxError("Unexpected Token <. Note: Using relational operators requires `--extension=cmprel`, perhaps it was disabled or not enabled.");
+                yield CompareOp.CmpGt;
+            }
+            case "<=" -> {
+                if(!exts.hasExtension(ExtensionsState.Extension.CmpRel))
+                    throw new SyntaxError("Unexpected Token <. Note: Using relational operators requires `--extension=cmprel`, perhaps it was disabled or not enabled.");
+                yield CompareOp.CmpLe;
+            }
+            case ">=" -> {
+                if(!exts.hasExtension(ExtensionsState.Extension.CmpRel))
+                    throw new SyntaxError("Unexpected Token <. Note: Using relational operators requires `--extension=cmprel`, perhaps it was disabled or not enabled.");
+                yield CompareOp.CmpGe;
+            }
             default -> {throw new SyntaxError("Unexpected Token");}
         };
         Expression right = parseExpr(it,exts);

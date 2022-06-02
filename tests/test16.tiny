@@ -1,0 +1,6 @@
+/** compile-pass no-run **/
+
+INT f0() BEGIN
+    IF(1==0) INT x:=0; ELSE INT x := 1;
+    RETURN 0;
+END

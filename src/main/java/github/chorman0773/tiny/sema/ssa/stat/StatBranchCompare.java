@@ -1,6 +1,6 @@
 package github.chorman0773.tiny.sema.ssa.stat;
 
-import github.chorman0773.tiny.ast.BooleanOp;
+import github.chorman0773.tiny.ast.CompareOp;
 import github.chorman0773.tiny.sema.ssa.expr.SSAExpression;
 
 import java.util.Collections;
@@ -8,12 +8,12 @@ import java.util.Map;
 
 public class StatBranchCompare extends SSAStatement {
     private final int targetN;
-    private final BooleanOp op;
+    private final CompareOp op;
     private final SSAExpression left;
     private final SSAExpression right;
     private final Map<Integer, Integer> remapLocals;
 
-    public StatBranchCompare(int targetN, BooleanOp op, SSAExpression left, SSAExpression right, Map<Integer,Integer> remapLocals){
+    public StatBranchCompare(int targetN, CompareOp op, SSAExpression left, SSAExpression right, Map<Integer,Integer> remapLocals){
         this.targetN = targetN;
         this.op = op;
         this.left = left;
@@ -25,7 +25,7 @@ public class StatBranchCompare extends SSAStatement {
         return this.targetN;
     }
 
-    public BooleanOp getOp(){
+    public CompareOp getOp(){
         return this.op;
     }
 

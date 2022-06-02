@@ -12,7 +12,7 @@ public class StatStoreDead extends SSAStatement {
     }
 
     public String toString(){
-        return "storage dead("+localN+")";
+        return "storage dead _"+localN;
     }
 
 }
