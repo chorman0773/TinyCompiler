@@ -1,0 +1,6 @@
+/** compile-fail no-run **/
+
+INT foo() BEGIN
+    INT WHILE := 0;
+    RETURN WHILE;
+END

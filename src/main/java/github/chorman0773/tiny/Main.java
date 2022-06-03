@@ -250,8 +250,9 @@ public class Main {
                 if(diag.noteExtension().isPresent()){
                     ExtensionsState.Extension ext = diag.noteExtension().get();
                     if(extensions.hasExtension(ext))
-                        System.err.println("Note: Extension "+ext.extId()+" is enabled, which may change some identifiers into keywords, or otherwise make some programs ill-formed. Use --no-extension="+ext.extId()+" to disable");
-
+                        System.err.println("Note: Extension '"+ext.extId()+"' is enabled, which may change some identifiers into keywords, or otherwise make some programs ill-formed. Use --no-extension="+ext.extId()+" to disable");
+                    else
+                        System.err.println("Note: Extension '"+ext.extId()+"' is disabled. Use --extension="+ext.extId()+" to enable");
                 }
                 System.exit(1);
                 throw new Error("Unreachable Code");
