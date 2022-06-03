@@ -1,0 +1,3 @@
+/** compile-fail no-run **/
+
+INT foo()

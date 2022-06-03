@@ -22,7 +22,7 @@ public class ProgramParser {
     public static MethodDeclaration parseMethodDeclaration(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
         Type ty = parseType(it,exts);
 
-        Symbol sym = it.peek().orElseThrow(()->new SyntaxError("Unexpected End of File"));
+        Symbol sym = it.peek().orElseThrow(()->new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty())));
 
         Optional<String> main = sym.checkValue(TinySym.Keyword);
 
@@ -47,7 +47,7 @@ public class ProgramParser {
                 break;
             checkNextToken(peek,TinySym.Sigil,",");
             if(!peek.hasNext())
-                throw new SyntaxError("Unexpected end of input");
+                throw new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty()));
         }
 
         Block block = parseBlock(it,exts);
@@ -59,7 +59,7 @@ public class ProgramParser {
         checkNextToken(it,TinySym.Keyword,"BEGIN");
         List<Statement> stats = new ArrayList<>();
         while(true){
-            Symbol sym = it.peek().orElseThrow(() -> new SyntaxError("Unexpected EOF"));
+            Symbol sym = it.peek().orElseThrow(() -> new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty())));
 
             if(sym.<String>checkValue(TinySym.Keyword).equals(Optional.of("END"))) {
                 it.next();
@@ -71,12 +71,28 @@ public class ProgramParser {
         return new Block(stats);
     }
 
-    public static <S> S getNextToken(Peek<Symbol> it, TinySym kind) throws SyntaxError{
+    public static Identifier getIdentifierToken(Peek<Symbol> it) throws SyntaxError{
         if(!it.hasNext())
-            throw new SyntaxError("Unexpected EOF");
+            throw new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty()));
         else{
             Symbol sym = it.next();
-            return sym.<S>checkValue(kind).orElseThrow(()->new SyntaxError("Unexpected token, got "+sym+", expected a "+kind));
+            if(sym.getSym()==TinySym.Keyword)
+                throw new SyntaxError(new Diagnostic("Unexpected token. Expected an Identifier, got "+sym,sym.getSpan(),ExtensionsState.keywordExtension((String)sym.getValue())));
+            else if(sym.getSym()!=TinySym.Identifier)
+                throw new SyntaxError(new Diagnostic("Unexpected token. Expected an Identifier, got"+sym,sym.getSpan(),Optional.empty()));
+            else
+                return new Identifier((String)sym.getValue(),sym.getSpan());
+        }
+    }
+
+    public static <S> S getNextToken(Peek<Symbol> it, TinySym kind) throws SyntaxError{
+        if(!it.hasNext())
+            throw new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty()));
+        else{
+            Symbol sym = it.next();
+            if(sym.getSym()==TinySym.Keyword&&kind==TinySym.Identifier)
+                throw new SyntaxError(new Diagnostic("Unexpected token. Expected an Identifier, got "+sym,sym.getSpan(),ExtensionsState.keywordExtension((String)sym.getValue())));
+            return sym.<S>checkValue(kind).orElseThrow(()->new SyntaxError(new Diagnostic("Unexpected token, got "+sym+", expected a "+kind,sym.getSpan(),Optional.empty())));
         }
     }
 
@@ -87,16 +103,18 @@ public class ProgramParser {
 
     public static <S> void checkNextToken(Peek<Symbol> it,TinySym kind,S value) throws SyntaxError {
         if(!it.hasNext())
-            throw new SyntaxError("Unexpected EOF");
+            throw new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty()));
         else{
             Symbol sym = it.next();
+            if(sym.getSym()==TinySym.Keyword&&kind==TinySym.Identifier)
+                throw new SyntaxError(new Diagnostic("Unexpected token. Expected an Identifier, got "+sym,sym.getSpan(),ExtensionsState.keywordExtension((String)sym.getValue())));
             if(!sym.<S>checkValue(kind).equals(Optional.of(value)))
-                throw new SyntaxError("Unexpected token, got "+sym+", expected "+kind+" ("+value + ")");
+                throw new SyntaxError(new Diagnostic("Unexpected token, got "+sym+", expected a "+kind,sym.getSpan(),Optional.empty()));
         }
     }
 
     public static Statement parseStatement(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
-        Symbol sym = it.peek().orElseThrow(() -> new SyntaxError("Unexpected EOF"));
+        Symbol sym = it.peek().orElseThrow(() ->new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty())));
 
         Optional<String> kw = sym.checkValue(TinySym.Keyword);
         Statement stat;
@@ -104,11 +122,13 @@ public class ProgramParser {
             stat = switch(kw.get()){
                 case "IF" -> {
                     it.next();
-                    List<Symbol> syms = it.optNext().flatMap(s->s.<List<Symbol>>checkValue(TinySym.ParenGroup)).orElseThrow(()->new SyntaxError("Unexpected End of File"));
+                    List<Symbol> syms = it.optNext().flatMap(s->s.<List<Symbol>>checkValue(TinySym.ParenGroup)).orElseThrow(()->new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty())));
                     Peek<Symbol> controlPeek = new Peek<>(syms.iterator());
                     BooleanExpr control = parseBooleanExpr(controlPeek, exts);
-                    if(controlPeek.hasNext())
-                        throw new SyntaxError("Unexpected leftover tokens " + controlPeek.next());
+                    if(controlPeek.hasNext()){
+                        Symbol next = controlPeek.next();
+                        throw new SyntaxError(new Diagnostic("Unexpected leftover tokens in parenthesis group",next.getSpan(),Optional.empty()));
+                    }
                     Statement then = parseStatement(it,exts);
                     Optional<String> next = it.peek().flatMap(s->s.checkValue(TinySym.Keyword));
                     Statement orelse = null;
@@ -131,7 +151,7 @@ public class ProgramParser {
 
                     checkNextToken(syms,TinySym.Sigil,",");
 
-                    String qpath = syms.optNext().flatMap(s->s.<String>checkValue(TinySym.String)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
+                    String qpath = getNextToken(syms,TinySym.String);
                     String path = qpath.substring(1,qpath.length()-1);
                     yield new StatementWrite(expr,path);
                 }
@@ -139,11 +159,11 @@ public class ProgramParser {
                     it.next();
                     Peek<Symbol> syms = getNextGroup(it);
 
-                    String id = syms.optNext().flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
+                    String id = getNextToken(syms,TinySym.Identifier);
 
                     checkNextToken(syms,TinySym.Sigil,",");
 
-                    String qpath = syms.optNext().flatMap(s->s.<String>checkValue(TinySym.String)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
+                    String qpath = getNextToken(syms,TinySym.String);
                     String path = qpath.substring(1,qpath.length()-1);
                     yield new StatementRead(id,path);
                 }
@@ -155,8 +175,10 @@ public class ProgramParser {
 
                     BooleanExpr expr = parseBooleanExpr(syms,exts);
 
-                    if(syms.hasNext())
-                        throw new SyntaxError("Unexpected token "+syms.next());
+                    if(syms.hasNext()){
+                        Symbol next = syms.next();
+                        throw new SyntaxError(new Diagnostic("Unexpected leftover tokens in parenthesis group",next.getSpan(),Optional.empty()));
+                    }
 
                     Statement next = parseStatement(it,exts);
                     yield new StatementWhile(expr,next);
@@ -173,29 +195,29 @@ public class ProgramParser {
 
                     BooleanExpr expr = parseBooleanExpr(syms,exts);
 
-                    if(syms.hasNext())
-                        throw new SyntaxError("Unexpected token "+syms.next());
+                    if(syms.hasNext()){
+                        Symbol tok = syms.next();
+                        throw new SyntaxError(new Diagnostic("Unexpected leftover tokens in parenthesis group",tok.getSpan(),Optional.empty()));
+                    }
 
                     yield new StatementDoWhile(expr,next);
                 }
                 default -> {
                     Type ty = parseType(it, exts);
-                    Optional<Symbol> tok = it.optNext();
-                    String id = tok.flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
+                    Identifier name = getIdentifierToken(it);
                     Expression init = null;
                     if(it.peek().flatMap(s->s.<String>checkValue(TinySym.Sigil)).equals(Optional.of(":="))){
                         it.next();
                         init = parseExpr(it,exts);
                     }
-                    yield new StatementDeclaration(ty,new Identifier(id,tok.get().getSpan()),init);
+                    yield new StatementDeclaration(ty,name,init);
                 }
             };
         }else{
-            Optional<Symbol> tok = it.optNext();
-            String id = tok.flatMap(s->s.<String>checkValue(TinySym.Identifier)).orElseThrow(() -> new SyntaxError("Unexpected Token"));
+            Identifier name = getIdentifierToken(it);
             checkNextToken(it,TinySym.Sigil,":=");
             Expression init = parseExpr(it,exts);
-            stat = new StatementAssignment(new Identifier(id,tok.get().getSpan()),init);
+            stat = new StatementAssignment(name,init);
         }
 
         if(!stat.isBlock()){
@@ -206,31 +228,32 @@ public class ProgramParser {
 
     public static BooleanExpr parseBooleanExpr(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError {
         Expression left = parseExpr(it,exts);
+        Optional<Span> span = it.peek().map(Symbol::getSpan);
         String sig = getNextToken(it,TinySym.Sigil);
         CompareOp op = switch(sig){
             case "==" -> CompareOp.CmpEq;
             case "!=" -> CompareOp.CmpNe;
             case "<" -> {
                 if(!exts.hasExtension(ExtensionsState.Extension.CmpRel))
-                    throw new SyntaxError("Unexpected Token <. Note: Using relational operators requires `--extension=cmprel`, perhaps it was disabled or not enabled.");
+                    throw new SyntaxError(new Diagnostic("Unexpected token "+sig,span.get(),Optional.of(ExtensionsState.Extension.CmpRel)));
                 yield CompareOp.CmpLt;
             }
             case ">" -> {
                 if(!exts.hasExtension(ExtensionsState.Extension.CmpRel))
-                    throw new SyntaxError("Unexpected Token <. Note: Using relational operators requires `--extension=cmprel`, perhaps it was disabled or not enabled.");
+                    throw new SyntaxError(new Diagnostic("Unexpected token "+sig,span.get(),Optional.of(ExtensionsState.Extension.CmpRel)));
                 yield CompareOp.CmpGt;
             }
             case "<=" -> {
                 if(!exts.hasExtension(ExtensionsState.Extension.CmpRel))
-                    throw new SyntaxError("Unexpected Token <. Note: Using relational operators requires `--extension=cmprel`, perhaps it was disabled or not enabled.");
+                    throw new SyntaxError(new Diagnostic("Unexpected token "+sig,span.get(),Optional.of(ExtensionsState.Extension.CmpRel)));
                 yield CompareOp.CmpLe;
             }
             case ">=" -> {
                 if(!exts.hasExtension(ExtensionsState.Extension.CmpRel))
-                    throw new SyntaxError("Unexpected Token <. Note: Using relational operators requires `--extension=cmprel`, perhaps it was disabled or not enabled.");
+                    throw new SyntaxError(new Diagnostic("Unexpected token "+sig,span.get(),Optional.of(ExtensionsState.Extension.CmpRel)));
                 yield CompareOp.CmpGe;
             }
-            default -> {throw new SyntaxError("Unexpected Token");}
+            default -> {throw new SyntaxError(new Diagnostic("Unexpected tokoken "+sig,span.get(),Optional.empty()));}
         };
         Expression right = parseExpr(it,exts);
 
@@ -272,7 +295,7 @@ public class ProgramParser {
     @SuppressWarnings("unchecked")
     public static Expression parseSimpleExpr(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
         if(!it.hasNext())
-            throw new SyntaxError("Unexpected End of File");
+            throw new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty()));
         Symbol sym = it.next();
 
         return switch(sym.getSym()){
@@ -290,11 +313,9 @@ public class ProgramParser {
                         args.add(parseExpr(inner,exts));
                         if(!inner.hasNext())
                             break;
-                        Symbol comma = inner.next();
-                        if(!comma.checkValue(TinySym.Sigil).equals(Optional.of(",")))
-                            throw new SyntaxError("Unexpected token "+ comma);
+                        checkNextToken(it,TinySym.Sigil,",");
                         if(!inner.hasNext())
-                            throw new SyntaxError("Unexpected End of Input");
+                            throw new SyntaxError(new Diagnostic("Unexpected End of Input",null,Optional.empty()));
                     }
                     yield new ExpressionCall(id,args);
                 }else
@@ -305,27 +326,25 @@ public class ProgramParser {
 
                 Expression expr = parseExpr(inner,exts);
                 if(inner.hasNext())
-                    throw new SyntaxError("Unexpected leftover tokens " + inner.next());
+                    throw new SyntaxError(new Diagnostic("Unexpected leftover tokens in parenthesis group",inner.next().getSpan(),Optional.empty()));
                 yield new ParenExpr(expr);
             }
             case Number -> new ExpressionNumber((Double)sym.getValue());
-            default -> throw new SyntaxError("Expected expression got "+sym);
+            default -> throw new SyntaxError(new Diagnostic("Expected expression got "+sym,sym.getSpan(),Optional.empty()));
         };
     }
 
     public static Type parseType(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
         if(!it.hasNext())
-            throw new SyntaxError("Unexpected End of File");
-        Symbol ty = it.next();
+            throw new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty()));
 
-        Optional<String> keyword = ty.checkValue(TinySym.Keyword);
-
-
-        return switch(keyword.orElseThrow(()->new SyntaxError("Expected keyword, got "+ty))){
+        Optional<Span> span = it.peek().map(Symbol::getSpan);
+        String keyword = getNextToken(it,TinySym.Keyword);
+        return switch(keyword){
             case "INT" -> Type.Int;
             case "REAL" -> Type.Real;
             case "STRING" -> Type.String;
-            default -> throw new SyntaxError("Expected INT, REAL, or STRING, got "+keyword.get());
+            default -> throw new SyntaxError(new Diagnostic("Expected INT, REAL, or STRING, got "+keyword,span.get(),Optional.empty()));
         };
     }
 }

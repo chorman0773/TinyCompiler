@@ -68,4 +68,11 @@ public class ExtensionsState {
             default -> false;
         };
     }
+
+    public static Optional<Extension> keywordExtension(String id){
+        return switch(id){
+            case "WHILE", "DO" -> Optional.of(Extension.While);
+            default -> Optional.empty();
+        };
+    }
 }

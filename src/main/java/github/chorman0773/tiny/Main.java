@@ -7,10 +7,12 @@ import github.chorman0773.tiny.ast.Statement;
 import github.chorman0773.tiny.codegen.Codegen;
 import github.chorman0773.tiny.codegen.CodegenService;
 import github.chorman0773.tiny.codegen.java.JavaCodegenService;
+import github.chorman0773.tiny.lex.Span;
 import github.chorman0773.tiny.lex.Symbol;
 import github.chorman0773.tiny.lex.TinyLexer;
 import github.chorman0773.tiny.lex.TinySym;
 import github.chorman0773.tiny.opt.Optimizer;
+import github.chorman0773.tiny.parse.Diagnostic;
 import github.chorman0773.tiny.parse.ProgramParser;
 import github.chorman0773.tiny.parse.SyntaxError;
 import github.chorman0773.tiny.sema.ssa.SSAConverter;
@@ -237,8 +239,23 @@ public class Main {
                 }
                 toks.add(sym);
             }
-            Program prg = ProgramParser.parseProgram(new Peek<>(toks.iterator()),extensions);
+            Program prg = null;
+            try {
+                 prg = ProgramParser.parseProgram(new Peek<>(toks.iterator()), extensions);
+            }catch(SyntaxError e){
+                Diagnostic diag = e.getDiagnostic();
+                Span s = Optional.ofNullable(diag.token()).orElse(sym.getSpan());
+                System.err.println("Syntax Error: "+diag.text());
+                System.err.printf("Note: At %s (from %d:%d to %d:%d)%n",s.fileName(),s.lineStart(),s.colStart(),s.lineEnd(),s.colEnd());
+                if(diag.noteExtension().isPresent()){
+                    ExtensionsState.Extension ext = diag.noteExtension().get();
+                    if(extensions.hasExtension(ext))
+                        System.err.println("Note: Extension "+ext.extId()+" is enabled, which may change some identifiers into keywords, or otherwise make some programs ill-formed. Use --no-extension="+ext.extId()+" to disable");
 
+                }
+                System.exit(1);
+                throw new Error("Unreachable Code");
+            }
             if(stage.compareTo(CompilationStage.Mir)>=0){
                 SSAConverter conv = new SSAConverter();
                 SSAProgram ssaprg = conv.convertProgram(prg);
@@ -309,10 +326,6 @@ public class Main {
                     out.close();
             }
 
-        } catch (SyntaxError e) {
-            System.err.println("Syntax Error");
-            e.printStackTrace();
-            System.exit(1);
         }
     }
 }

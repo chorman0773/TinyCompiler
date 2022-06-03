@@ -62,7 +62,7 @@ public class TinyLexer {
         do {
             var tok = it.optNext();
             if (tok.isEmpty())
-                return new Symbol(TinySym.Eof);
+                return new Symbol(TinySym.Eof,null,new Span(filename,line,col,line,col));
 
             c =tok.get();
             if(c=='\n'){
