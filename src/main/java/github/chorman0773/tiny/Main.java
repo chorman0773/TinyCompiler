@@ -1,9 +1,6 @@
 package github.chorman0773.tiny;
 
-import github.chorman0773.tiny.ast.MethodDeclaration;
-import github.chorman0773.tiny.ast.Parameter;
-import github.chorman0773.tiny.ast.Program;
-import github.chorman0773.tiny.ast.Statement;
+import github.chorman0773.tiny.ast.*;
 import github.chorman0773.tiny.codegen.Codegen;
 import github.chorman0773.tiny.codegen.CodegenService;
 import github.chorman0773.tiny.codegen.java.JavaCodegenService;
@@ -306,22 +303,29 @@ public class Main {
                 }else
                     out = new FileOutputStream(outputFile);
                 PrintStream print = new PrintStream(out);
-                for(MethodDeclaration decl : prg.getDeclarations()){
-                    print.print(decl.returnType()+" ");
-                    if(decl.isMain())
-                        print.print("MAIN ");
-                    print.print(decl.getName() +"(");
-                    String sep = "";
-                    for(Parameter param : decl.getParameters()){
-                        print.print(sep);
-                        sep =", ";
-                        print.print(param);
+                for(TopLevelDeclaration decl : prg.getDeclarations()){
+                    if(decl instanceof MethodDeclaration mdecl){
+                        print.print(mdecl.returnType()+" ");
+                        if(mdecl.isMain())
+                            print.print("MAIN ");
+                        print.print(mdecl.getName() +"(");
+                        String sep = "";
+                        for(Parameter param : mdecl.getParameters()){
+                            print.print(sep);
+                            sep =", ";
+                            print.print(param);
+                        }
+                        print.println("){");
+                        for(Statement stat : mdecl.getBlock().getStatements()){
+                            print.println(stat);
+                        }
+                        print.println("}");
+                    }else if(decl instanceof ImportDecl imp){
+                        print.print("IMPORT ");
+                        print.print(imp.getName());
+                        print.println(";");
                     }
-                    print.println("){");
-                    for(Statement stat : decl.getBlock().getStatements()){
-                        print.println(stat);
-                    }
-                    print.println("}");
+
                 }
                 if(out!=System.out)
                     out.close();

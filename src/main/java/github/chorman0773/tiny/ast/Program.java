@@ -4,13 +4,13 @@ import java.util.Collections;
 import java.util.List;
 
 public class Program {
-    private List<MethodDeclaration> decls;
+    private List<TopLevelDeclaration> decls;
 
-    public Program(List<MethodDeclaration> decls){
+    public Program(List<TopLevelDeclaration> decls){
         this.decls = decls;
     }
 
-    public List<MethodDeclaration> getDeclarations(){
+    public List<TopLevelDeclaration> getDeclarations(){
         return Collections.unmodifiableList(decls);
     }
 

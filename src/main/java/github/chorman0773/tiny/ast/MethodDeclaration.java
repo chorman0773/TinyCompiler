@@ -4,17 +4,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class MethodDeclaration {
+public class MethodDeclaration extends TopLevelDeclaration {
     private final boolean isMain;
     private final Type retTy;
-    private final String name;
     private final List<Parameter> parameters;
     private final Block block;
 
     public MethodDeclaration(boolean isMain, Type retTy, String name, List<Parameter> parameters, Block block){
+        super(name);
         this.isMain = isMain;
         this.retTy = retTy;
-        this.name = name;
         this.parameters = parameters;
         this.block = block;
     }
@@ -27,9 +26,6 @@ public class MethodDeclaration {
         return retTy;
     }
 
-    public String getName(){
-        return name;
-    }
 
     public List<Parameter> getParameters(){
         return Collections.unmodifiableList(this.parameters);
@@ -44,7 +40,7 @@ public class MethodDeclaration {
         builder.append(retTy).append(' ');
         if(isMain)
             builder.append("MAIN ");
-        builder.append(name);
+        builder.append(this.getName());
         builder.append("(");
         builder.append(this.parameters.stream().map(Parameter::toString).collect(Collectors.joining(",")));
         builder.append(") ");

@@ -9,7 +9,8 @@ public class ExtensionsState {
     public enum Extension{
         Uax31,
         While,
-        CmpRel;
+        CmpRel,
+        Libraries;
 
 
 
@@ -18,6 +19,7 @@ public class ExtensionsState {
                 case "uax31" -> Optional.of(Uax31);
                 case "while" -> Optional.of(While);
                 case "cmprel" -> Optional.of(CmpRel);
+                case "libraries" -> Optional.of(Libraries);
                 default -> Optional.empty();
             };
         }
@@ -27,6 +29,7 @@ public class ExtensionsState {
                 case Uax31 -> "uax31";
                 case While -> "while";
                 case CmpRel -> "cmprel";
+                case Libraries -> "libraries";
             };
         }
     }
@@ -65,6 +68,7 @@ public class ExtensionsState {
         return switch(id){
             case "INT", "REAL", "STRING", "MAIN", "READ", "WRITE", "BEGIN", "END", "IF", "ELSE", "RETURN" -> true;
             case "WHILE","DO" -> exts.contains(Extension.While);
+            case "IMPORT" -> exts.contains(Extension.Libraries);
             default -> false;
         };
     }
@@ -72,6 +76,7 @@ public class ExtensionsState {
     public static Optional<Extension> keywordExtension(String id){
         return switch(id){
             case "WHILE", "DO" -> Optional.of(Extension.While);
+            case "IMPORT" -> Optional.of(Extension.Libraries);
             default -> Optional.empty();
         };
     }

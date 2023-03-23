@@ -13,10 +13,26 @@ import java.util.*;
 public class ProgramParser {
 
     public static Program parseProgram(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
-        List<MethodDeclaration> decls = new ArrayList<>();
+
+        List<TopLevelDeclaration> decls = new ArrayList<>();
         while(it.hasNext())
-            decls.add(parseMethodDeclaration(it, exts));
+            decls.add(parseDeclaration(it, exts));
         return new Program(decls);
+    }
+
+    public static TopLevelDeclaration parseDeclaration(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{
+        if(it.peek().flatMap(s->s.<String>checkValue(TinySym.Keyword)).equals(Optional.of("IMPORT"))){
+            it.next();
+            Symbol sym = it.peek().orElseThrow(()->new SyntaxError(new Diagnostic("Unexpected EOF",null,Optional.empty())));
+
+            String name = getNextToken(it,TinySym.Identifier);
+
+            checkNextToken(it,TinySym.Sigil,";");
+
+            return new ImportDecl(name);
+        }else{
+            return parseMethodDeclaration(it,exts);
+        }
     }
 
     public static MethodDeclaration parseMethodDeclaration(Peek<Symbol> it, ExtensionsState exts) throws SyntaxError{

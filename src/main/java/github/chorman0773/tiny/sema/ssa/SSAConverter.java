@@ -1,20 +1,33 @@
 package github.chorman0773.tiny.sema.ssa;
 
 import github.chorman0773.tiny.ast.*;
+import github.chorman0773.tiny.libraries.MetadataProvider;
 import github.chorman0773.tiny.sema.ConversionError;
 import github.chorman0773.tiny.sema.ssa.expr.*;
 import github.chorman0773.tiny.sema.ssa.expr.SSAExpression;
 import github.chorman0773.tiny.sema.ssa.stat.*;
 
 
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class SSAConverter {
+public class SSAConverter implements MetadataProvider {
 
     private Map<String, MethodSignature> signature;
 
     private List<BasicBlock> basicBlocks;
+
+    @Override
+    public Stream<String> getMethods() {
+        return signature.keySet().stream();
+    }
+
+    @Override
+    public Optional<MethodSignature> getSignature(String name) {
+        return Optional.of(signature.get(name));
+    }
 
     static class BasicBlockBuilder{
         BasicBlockBuilder(int num){
@@ -437,13 +450,20 @@ public class SSAConverter {
 
     public SSAProgram convertProgram(github.chorman0773.tiny.ast.Program prg){
         for(var decl : prg.getDeclarations()){
-            if(signature.putIfAbsent(decl.getName(),new MethodSignature(decl.returnType(), decl.getParameters().stream().map(Parameter::getType).toList()))!=null)
-                throw new ConversionError("Redefinition of method "+decl.getName());
+            if(decl instanceof MethodDeclaration mdecl)
+                if(signature.putIfAbsent(decl.getName(),new MethodSignature(mdecl.returnType(), mdecl.getParameters().stream().map(Parameter::getType).toList()))!=null)
+                    throw new ConversionError("Redefinition of method "+mdecl.getName());
+            else if(decl instanceof ImportDecl idecl){
+
+                }
         }
         List<SSAMethodDeclaration> decls = new ArrayList<>();
         for(var decl : prg.getDeclarations()){
-            decls.add(convertMethod(decl));
-            this.reset();
+            if(decl instanceof MethodDeclaration mdecl){
+                decls.add(convertMethod(mdecl));
+                this.reset();
+            }
+
         }
         return new SSAProgram(decls);
     }

@@ -7,7 +7,7 @@ plugins {
     id 'application'
 }
 
-sourceCompatibility = targetCompatibility = 16
+sourceCompatibility = targetCompatibility = 17
 
 repositories {
 	mavenLocal()
@@ -35,6 +35,8 @@ task javadocJar(type: Jar){
 	from javadoc
 	archiveClassifier = "javadoc"
 }
+
+
 publishing {
     publications {
         "${project.name}"(MavenPublication) {
@@ -103,3 +105,4 @@ task publishReleases{
         e->!e.getName().contains("Snapshot")
     }
 }
+
